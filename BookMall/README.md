@@ -1,6 +1,17 @@
 # BookMall 项目说明文档
 
-> 一个基于 Spring Cloud Alibaba 的微服务图书商城项目，当前已完成前后端主链路联通、Nacos 注册发现、Gateway 路由、Redis 热点缓存、Sentinel 限流，以及基于现有 Docker Nginx 的前端统一入口。
+> 一个基于 Spring Cloud Alibaba 的微服务图书商城项目，当前已经完成前后端主链路联通，并落地了 Redis 热点缓存、Sentinel 限流与 Docker Nginx 统一入口，适合作为微服务课程设计、毕业设计或个人作品集项目。
+
+## 项目定位
+
+BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目标不是只完成接口演示，而是尽量贴近真实企业项目中的分层、服务拆分和基础设施接入方式。
+
+它目前更适合用于：
+
+- 微服务项目学习与练手
+- Java 后端作品集展示
+- Spring Cloud Alibaba 技术栈实践
+- 前后端联调与部署演示
 
 ## 项目概览
 
@@ -37,6 +48,14 @@
 | `bookmall-inventory` | 8085 | 库存 |
 | `bookmall-address` | 8086 | 收货地址 |
 | `front` | 80 | 前端静态页面，Nginx 托管 |
+
+## 项目亮点
+
+- 微服务职责划分清楚，便于继续扩展消息队列、分布式事务和链路追踪
+- 图书服务已经接入 Redis 热点缓存，能演示缓存命中与缓存失效
+- 图书服务已经接入 Sentinel，可直接演示接口限流效果
+- 网关与 Nginx 形成统一入口，前后端联调路径清晰
+- 配置已经做开源化整理，适合直接发布到 GitHub 展示
 
 ## 当前架构
 
@@ -88,9 +107,48 @@
 | `BOOKMALL_JWT_SECRET` | `change-me-in-production` | JWT 密钥 |
 | `BOOKMALL_JWT_EXPIRE_SECONDS` | `86400` | JWT 过期秒数 |
 
-## 本地开发建议配置
+## 快速启动
 
-如果你要在本地运行，可以先在启动命令或 IDE 环境变量中设置：
+### 1. 准备基础环境
+
+如果你要在本地运行，可以先准备：
+
+- MySQL
+- Redis
+- Nacos
+- Nginx
+- Java 17
+- Maven 3.9+
+- Node.js 18+
+
+当前项目默认运行方式：
+
+- Windows + IDEA 跑 Java 微服务
+- Docker 跑 MySQL / Redis / Nacos / Nginx
+- WSL 负责辅助命令执行
+
+### 2. 初始化数据库
+
+数据库名：`bookmall`
+
+执行脚本：
+
+- [sql/sql.txt](/D:/workspace_idea/BookMall/sql/sql.txt)
+
+主要表：
+
+- `t_user`
+- `t_book`
+- `t_category`
+- `t_cart`
+- `t_order`
+- `t_order_item`
+- `t_inventory`
+- `t_address`
+
+### 3. 配置本地环境变量
+
+建议先在启动命令或 IDE 环境变量中设置：
 
 ```text
 BOOKMALL_DB_PASSWORD=root
@@ -102,6 +160,51 @@ BOOKMALL_JWT_SECRET=bookmall-local-demo-secret
 - MySQL: `localhost:3306`
 - Redis: `localhost:6379`
 - Nacos: `localhost:8848`
+
+### 4. 启动顺序
+
+1. 启动 Docker：MySQL、Redis、Nacos、Nginx
+2. 设置本地环境变量，至少补齐数据库密码和 JWT 密钥
+3. 启动 `bookmall-auth`
+4. 启动 `bookmall-book`
+5. 启动 `bookmall-cart`
+6. 启动 `bookmall-inventory`
+7. 启动 `bookmall-address`
+8. 启动 `bookmall-order`
+9. 启动 `bookmall-gateway`
+
+### 5. 前端运行
+
+前端目录：
+
+- [front](/D:/workspace_idea/BookMall/front)
+
+开发模式：
+
+```bash
+cd front
+npm install
+npm run dev
+```
+
+如果沿用当前部署方式，可将打包后的静态资源放到 Docker Nginx 中统一托管。
+
+## 访问方式
+
+### 前端
+
+- `http://localhost`
+
+### 网关
+
+- `http://localhost:8080`
+
+### 常用接口
+
+- `GET http://localhost/api/auth/hello`
+- `GET http://localhost/api/books/hello`
+- `GET http://localhost/api/books`
+- `GET http://localhost/api/books/1`
 
 ## 已完成的主要功能
 
@@ -157,77 +260,7 @@ BOOKMALL_JWT_SECRET=bookmall-local-demo-secret
 - 通过 `BookClient`、`InventoryClient`、`AddressClient` 编排下单
 - 使用快照 DTO 传输必要字段
 
-## 当前运行环境
-
-- Windows + IDEA 跑 Java 微服务
-- Docker 跑 MySQL / Redis / Nacos / Nginx
-- WSL 负责辅助命令执行
-
-## 启动顺序
-
-1. 启动 Docker：MySQL、Redis、Nacos、Nginx
-2. 设置本地环境变量，至少补齐数据库密码和 JWT 密钥
-3. 启动 `bookmall-auth`
-4. 启动 `bookmall-book`
-5. 启动 `bookmall-cart`
-6. 启动 `bookmall-inventory`
-7. 启动 `bookmall-address`
-8. 启动 `bookmall-order`
-9. 启动 `bookmall-gateway`
-
-## 访问方式
-
-### 前端
-
-- `http://localhost`
-
-### 网关
-
-- `http://localhost:8080`
-
-### 常用接口
-
-- `GET http://localhost/api/auth/hello`
-- `GET http://localhost/api/books/hello`
-- `GET http://localhost/api/books`
-- `GET http://localhost/api/books/1`
-
-## 数据库
-
-数据库名：`bookmall`
-
-主要表：
-
-- `t_user`
-- `t_book`
-- `t_category`
-- `t_cart`
-- `t_order`
-- `t_order_item`
-- `t_inventory`
-- `t_address`
-
-## 目前进度
-
-### 已完成
-
-- 项目基础架构搭建
-- 全部服务接入 Nacos
-- Gateway 路由改为服务发现
-- 订单服务改用 OpenFeign
-- Book 服务 Redis 缓存
-- Book 服务 Sentinel 限流
-- 前端 Nginx 统一入口
-- 文档体系整理
-
-### 待继续
-
-- RabbitMQ 异步通知
-- Seata 分布式事务
-- 日志和链路追踪进一步完善
-- 更完整的企业级部署脚本
-
-## 本地验证
+## 验证方式
 
 ### Redis
 
@@ -252,17 +285,32 @@ curl http://localhost/api/books/hello
 
 更细的模块说明在 `说明文档/` 目录下：
 
-- `BookMall-基础设施搭建说明.md`
-- `BookMall-增强项实施说明.md`
-- `BookMall-Nginx部署说明.md`
-- `BookMall-auth说明文档.md`
-- `BookMall-book说明文档.md`
-- `BookMall-gateway说明文档.md`
-- `BookMall-cart说明文档.md`
-- `BookMall-order说明文档.md`
-- `BookMall-inventory说明文档.md`
-- `BookMall-address说明文档.md`
+- [说明文档/BookMall-基础设施搭建说明.md](/D:/workspace_idea/BookMall/说明文档/BookMall-基础设施搭建说明.md)
+- [说明文档/BookMall-增强项实施说明.md](/D:/workspace_idea/BookMall/说明文档/BookMall-增强项实施说明.md)
+- [说明文档/BookMall-Nginx部署说明.md](/D:/workspace_idea/BookMall/说明文档/BookMall-Nginx部署说明.md)
+- [说明文档/BookMall-auth说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-auth说明文档.md)
+- [说明文档/BookMall-book说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-book说明文档.md)
+- [说明文档/BookMall-cart说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-cart说明文档.md)
+- [说明文档/BookMall-gateway说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-gateway说明文档.md)
+- [说明文档/BookMall-inventory说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-inventory说明文档.md)
+- [说明文档/BookMall-order说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-order说明文档.md)
 
-## 备注
+## 目前进度
 
-当前项目已经可以按“前端统一入口 + 网关 + 微服务 + 缓存 + 限流”的方式联调，不再是单纯的接口练习工程。后续新增能力时，建议继续保持“代码改动 + 说明文档同步更新”的方式推进。
+### 已完成
+
+- 项目基础架构搭建
+- 全部服务接入 Nacos
+- Gateway 路由改为服务发现
+- 订单服务改用 OpenFeign
+- Book 服务 Redis 缓存
+- Book 服务 Sentinel 限流
+- 前端 Nginx 统一入口
+- 文档体系整理
+
+### 待继续
+
+- RabbitMQ 异步通知
+- Seata 分布式事务
+- 日志和链路追踪进一步完善
+- 更完整的企业级部署脚本
