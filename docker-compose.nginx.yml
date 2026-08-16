@@ -1,0 +1,12 @@
+version: '3.9'
+
+services:
+  bookmall-nginx:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    container_name: bookmall-nginx
+    ports:
+      - "80:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

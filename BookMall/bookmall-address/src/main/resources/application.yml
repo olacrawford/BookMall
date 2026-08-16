@@ -1,0 +1,24 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: address
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${BOOKMALL_NACOS_ADDR:localhost:8848}
+        namespace: ${BOOKMALL_NACOS_NAMESPACE:public}
+        group: ${BOOKMALL_NACOS_GROUP:DEFAULT_GROUP}
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${BOOKMALL_DB_HOST:localhost}:${BOOKMALL_DB_PORT:3306}/${BOOKMALL_DB_NAME:bookmall}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: ${BOOKMALL_DB_USERNAME:root}
+    password: ${BOOKMALL_DB_PASSWORD:change-me}
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto

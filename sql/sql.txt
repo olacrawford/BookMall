@@ -1,0 +1,125 @@
+USE bookmall;
+
+-- 用户表
+DROP TABLE IF EXISTS t_user;
+CREATE TABLE t_user (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    username VARCHAR(50) NOT NULL COMMENT '用户名',
+    password VARCHAR(100) NOT NULL COMMENT '密码',
+    nickname VARCHAR(50) DEFAULT NULL COMMENT '昵称',
+    phone VARCHAR(20) DEFAULT NULL COMMENT '手机号',
+    email VARCHAR(100) DEFAULT NULL COMMENT '邮箱',
+    status TINYINT NOT NULL DEFAULT 1 COMMENT '状态：1启用 0禁用',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_username (username)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
+
+-- 分类表
+DROP TABLE IF EXISTS t_category;
+CREATE TABLE t_category (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    name VARCHAR(50) NOT NULL COMMENT '分类名称',
+    parent_id BIGINT NOT NULL DEFAULT 0 COMMENT '父分类ID，0表示一级分类',
+    sort INT NOT NULL DEFAULT 0 COMMENT '排序',
+    status TINYINT NOT NULL DEFAULT 1 COMMENT '状态：1启用 0禁用',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    KEY idx_parent_id (parent_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='图书分类表';
+
+-- 图书表
+DROP TABLE IF EXISTS t_book;
+CREATE TABLE t_book (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    title VARCHAR(200) NOT NULL COMMENT '图书标题',
+    author VARCHAR(100) DEFAULT NULL COMMENT '作者',
+    price DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '价格',
+    category_id BIGINT NOT NULL COMMENT '分类ID',
+    cover_url VARCHAR(500) DEFAULT NULL COMMENT '封面地址',
+    description TEXT COMMENT '图书简介',
+    status TINYINT NOT NULL DEFAULT 1 COMMENT '状态：1上架 0下架',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    KEY idx_category_id (category_id),
+    KEY idx_title (title)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='图书表';
+
+-- 库存表
+DROP TABLE IF EXISTS t_inventory;
+CREATE TABLE t_inventory (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    book_id BIGINT NOT NULL COMMENT '图书ID',
+    available_stock INT NOT NULL DEFAULT 0 COMMENT '可用库存',
+    locked_stock INT NOT NULL DEFAULT 0 COMMENT '锁定库存',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_book_id (book_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='库存表';
+
+-- 购物车表
+DROP TABLE IF EXISTS t_cart;
+CREATE TABLE t_cart (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    book_id BIGINT NOT NULL COMMENT '图书ID',
+    quantity INT NOT NULL DEFAULT 1 COMMENT '数量',
+    selected TINYINT NOT NULL DEFAULT 1 COMMENT '是否选中：1是 0否',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_user_book (user_id, book_id),
+    KEY idx_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='购物车表';
+
+-- 订单主表
+DROP TABLE IF EXISTS t_order;
+CREATE TABLE t_order (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    order_no VARCHAR(64) NOT NULL COMMENT '订单号',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '订单总金额',
+    status TINYINT NOT NULL DEFAULT 0 COMMENT '订单状态：0待支付 1已支付 2已取消 3已完成',
+    pay_status TINYINT NOT NULL DEFAULT 0 COMMENT '支付状态：0未支付 1已支付',
+    receiver_name VARCHAR(50) DEFAULT NULL COMMENT '收货人',
+    receiver_phone VARCHAR(20) DEFAULT NULL COMMENT '收货电话',
+    receiver_address VARCHAR(255) DEFAULT NULL COMMENT '收货地址',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_order_no (order_no),
+    KEY idx_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单主表';
+
+-- 订单明细表
+DROP TABLE IF EXISTS t_order_item;
+CREATE TABLE t_order_item (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    order_id BIGINT NOT NULL COMMENT '订单ID',
+    book_id BIGINT NOT NULL COMMENT '图书ID',
+    book_title VARCHAR(200) NOT NULL COMMENT '图书标题',
+    book_price DECIMAL(10,2) NOT NULL COMMENT '图书单价',
+    quantity INT NOT NULL COMMENT '数量',
+    subtotal DECIMAL(10,2) NOT NULL COMMENT '小计金额',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    KEY idx_order_id (order_id),
+    KEY idx_book_id (book_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单明细表';
+
+-- 收货地址表
+DROP TABLE IF EXISTS t_address;
+CREATE TABLE t_address (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    receiver_name VARCHAR(50) NOT NULL COMMENT '收货人',
+    receiver_phone VARCHAR(20) NOT NULL COMMENT '收货电话',
+    province VARCHAR(50) NOT NULL COMMENT '省',
+    city VARCHAR(50) NOT NULL COMMENT '市',
+    district VARCHAR(50) DEFAULT NULL COMMENT '区',
+    detail_address VARCHAR(255) NOT NULL COMMENT '详细地址',
+    is_default TINYINT NOT NULL DEFAULT 0 COMMENT '是否默认：1是 0否',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    KEY idx_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='收货地址表';
+
+ALTER TABLE t_book
+ADD COLUMN deleted TINYINT NOT NULL DEFAULT 0 COMMENT '软删除标记：0未删除 1已删除';
