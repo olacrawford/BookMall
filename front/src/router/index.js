@@ -2,9 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
 import BooksView from '../views/BooksView.vue'
-import CartView from '../views/CartView.vue'
 import OrdersView from '../views/OrdersView.vue'
-import AddressesView from '../views/AddressesView.vue'
 import { isLoggedIn } from '../utils/session'
 
 const routes = [
@@ -12,9 +10,7 @@ const routes = [
   { path: '/login', component: LoginView },
   { path: '/home', component: HomeView, meta: { auth: true } },
   { path: '/books', component: BooksView, meta: { auth: true } },
-  { path: '/cart', component: CartView, meta: { auth: true } },
-  { path: '/orders', component: OrdersView, meta: { auth: true } },
-  { path: '/addresses', component: AddressesView, meta: { auth: true } }
+  { path: '/orders', component: OrdersView, meta: { auth: true } }
 ]
 
 const router = createRouter({

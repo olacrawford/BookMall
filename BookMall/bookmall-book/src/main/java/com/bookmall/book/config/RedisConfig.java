@@ -1,39 +1,35 @@
 package com.bookmall.book.config;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.cache.RedisCacheConfiguration;
+import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
-import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.data.redis.serializer.RedisSerializationContext;
 
-@Configuration
+/**
+ * Redis缓存配置类
+ * SpringCache默认使用JDK序列化，会出现二进制乱码；
+ * 这里改成JSON序列化，Redis客户端能看懂存的数据，不需要实体实现Serializable接口
+ */
+@Configuration // 标记这是配置类，项目启动会执行这个类，向Spring注册Bean
 public class RedisConfig {
 
-    @Bean
-    public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
-        RedisTemplate<String, Object> template = new RedisTemplate<>();
-        template.setConnectionFactory(connectionFactory);
+    /**
+     * 自定义缓存管理器cacheManager，覆盖SpringCache默认配置
+     * @param factory Redis连接工厂，Spring自动注入，包含redis地址、端口等连接信息
+     * @return RedisCacheManager 缓存管理器对象，SpringCache底层靠它操作Redis
+     */
+    @Bean // 将该方法返回的对象交给Spring容器管理，替换默认的CacheManager
+    public RedisCacheManager cacheManager(RedisConnectionFactory factory) {
+        // 获取默认缓存配置
+        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
+                // 设置value值使用Jackson JSON序列化器
+                .serializeValuesWith(RedisSerializationContext.SerializationPair
+                        .fromSerializer(new GenericJackson2JsonRedisSerializer()));
 
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-        mapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance,
-                ObjectMapper.DefaultTyping.NON_FINAL,
-                JsonTypeInfo.As.PROPERTY);
-
-        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(mapper);
-        StringRedisSerializer stringSerializer = new StringRedisSerializer();
-
-        template.setKeySerializer(stringSerializer);
-        template.setHashKeySerializer(stringSerializer);
-        template.setValueSerializer(serializer);
-        template.setHashValueSerializer(serializer);
-        template.afterPropertiesSet();
-        return template;
+        // 使用连接工厂 + 自定义配置，构建RedisCacheManager
+        return RedisCacheManager.builder(factory).cacheDefaults(config).build();
     }
 }

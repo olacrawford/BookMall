@@ -3,7 +3,7 @@
     <div class="auth-hero">
       <p class="eyebrow">BookMall</p>
       <h3>{{ mode === 'login' ? '欢迎回来' : '创建账号' }}</h3>
-      <p class="muted auth-hint">先登录或注册，再进入图书、购物车、订单和地址管理。</p>
+      <p class="muted auth-hint">先登录或注册，再浏览图书、下单和管理订单。</p>
     </div>
 
     <div class="tab-row auth-tabs">

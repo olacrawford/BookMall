@@ -16,7 +16,7 @@
         <article v-for="order in orders" :key="order.id" class="list-card order-card">
           <div>
             <strong>{{ order.orderNo }}</strong>
-            <p class="muted">状态：{{ orderStatusText(order.status) }} · 支付：{{ payStatusText(order.payStatus) }} · 金额：￥{{ order.totalAmount }}</p>
+            <p class="muted">状态：{{ orderStatusText(order.status) }} · 金额：￥{{ order.totalAmount }}</p>
           </div>
           <div class="row">
             <button class="ghost" type="button" @click="loadDetail(order.id)">详情</button>
@@ -24,7 +24,7 @@
           </div>
         </article>
       </div>
-      <p v-else class="muted">还没有订单，先去图书页和购物车页试试下单。</p>
+      <p v-else class="muted">还没有订单，先去图书页挑本书下单吧。</p>
     </template>
 
     <section v-if="detail" class="sub-card">
@@ -54,13 +54,9 @@ const loading = ref(false)
 
 function orderStatusText(status) {
   if (status === 0) return '待支付'
-  if (status === 2) return '已取消'
-  return status ?? '未知'
-}
-
-function payStatusText(status) {
-  if (status === 0) return '未支付'
   if (status === 1) return '已支付'
+  if (status === 2) return '已取消'
+  if (status === 3) return '已完成'
   return status ?? '未知'
 }
 
@@ -74,7 +70,7 @@ async function loadOrders() {
   loading.value = true
   error.value = ''
   try {
-    orders.value = await orderApi.list(user.userId)
+    orders.value = await orderApi.list()
     detail.value = null
   } catch (e) {
     error.value = e.message || '订单列表加载失败'

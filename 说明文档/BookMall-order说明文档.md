@@ -166,7 +166,7 @@
 
 当前配置包含：
 
-- 服务端口：`8084`
+- 服务端口：`8050`
 - 服务名：`bookmall-order`
 - 数据源：连接本地 MySQL 的 `bookmall` 数据库
 - MyBatis-Plus 配置

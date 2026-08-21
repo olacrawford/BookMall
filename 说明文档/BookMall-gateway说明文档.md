@@ -154,7 +154,7 @@
 路由配置：
 
 - `Path=/api/auth/**`
-- `uri=http://localhost:8081`
+- `uri=http://localhost:8060`
 - `StripPrefix=1`
 
 说明：
@@ -165,14 +165,14 @@
 例如：
 
 - `GET http://localhost:8080/api/auth/hello`
-- 实际转发到：`GET http://localhost:8081/auth/hello`
+- 实际转发到：`GET http://localhost:8060/auth/hello`
 
 ### 6.2 转发到 book 服务
 
 路由配置：
 
 - `Path=/api/books/**`
-- `uri=http://localhost:8082`
+- `uri=http://localhost:8070`
 - `StripPrefix=1`
 
 说明：
@@ -183,7 +183,7 @@
 例如：
 
 - `GET http://localhost:8080/api/books/hello`
-- 实际转发到：`GET http://localhost:8082/books/hello`
+- 实际转发到：`GET http://localhost:8070/books/hello`
 
 ## 7. 当前跨域配置
 

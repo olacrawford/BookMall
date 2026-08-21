@@ -1,31 +1,20 @@
 server:
-  port: 8082
+  port: 8070
 
 spring:
   application:
     name: book
+  config:
+    import:
+      - optional:nacos:book.yaml
   cloud:
     nacos:
+      config:
+        server-addr: localhost:8848
       discovery:
-        server-addr: ${BOOKMALL_NACOS_ADDR:localhost:8848}
-        namespace: ${BOOKMALL_NACOS_NAMESPACE:public}
-        group: ${BOOKMALL_NACOS_GROUP:DEFAULT_GROUP}
-    sentinel:
-      transport:
-        dashboard: ${BOOKMALL_SENTINEL_DASHBOARD:localhost:8858}
-        port: ${BOOKMALL_SENTINEL_PORT:8720}
-      eager: true
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${BOOKMALL_DB_HOST:localhost}:${BOOKMALL_DB_PORT:3306}/${BOOKMALL_DB_NAME:bookmall}?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
-    username: ${BOOKMALL_DB_USERNAME:root}
-    password: ${BOOKMALL_DB_PASSWORD:change-me}
-  data:
-    redis:
-      host: ${BOOKMALL_REDIS_HOST:localhost}
-      port: ${BOOKMALL_REDIS_PORT:6379}
-      database: ${BOOKMALL_REDIS_DB:0}
-      timeout: 2s
+        server-addr: localhost:8848
+        namespace: public
+        group: DEFAULT_GROUP
 
 mybatis-plus:
   configuration:
@@ -33,14 +22,3 @@ mybatis-plus:
   global-config:
     db-config:
       id-type: auto
-
-bookmall:
-  cache:
-    book-list-ttl-minutes: 10
-    book-detail-ttl-minutes: 30
-    category-tree-ttl-minutes: 30
-    empty-ttl-minutes: 5
-  sentinel:
-    list-qps: 6
-    detail-qps: 12
-    search-qps: 4

@@ -1,0 +1,2 @@
+jwt:
+  secret: bookmall-jwt-secret-key-2026-safe

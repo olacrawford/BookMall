@@ -1,20 +1,20 @@
 server:
-  port: 8081
+  port: 8060
 
 spring:
   application:
     name: auth
+  config:
+    import:
+      - optional:nacos:auth.yaml
   cloud:
     nacos:
+      config:
+        server-addr: localhost:8848
       discovery:
-        server-addr: ${BOOKMALL_NACOS_ADDR:localhost:8848}
-        namespace: ${BOOKMALL_NACOS_NAMESPACE:public}
-        group: ${BOOKMALL_NACOS_GROUP:DEFAULT_GROUP}
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${BOOKMALL_DB_HOST:localhost}:${BOOKMALL_DB_PORT:3306}/${BOOKMALL_DB_NAME:bookmall}?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
-    username: ${BOOKMALL_DB_USERNAME:root}
-    password: ${BOOKMALL_DB_PASSWORD:change-me}
+        server-addr: localhost:8848
+        namespace: public
+        group: DEFAULT_GROUP
 
 mybatis-plus:
   configuration:
@@ -22,7 +22,3 @@ mybatis-plus:
   global-config:
     db-config:
       id-type: auto
-
-jwt:
-  secret: ${BOOKMALL_JWT_SECRET:change-me-in-production}
-  expire-seconds: ${BOOKMALL_JWT_EXPIRE_SECONDS:86400}

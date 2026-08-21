@@ -6,7 +6,9 @@ import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerIntercept
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-//MyBatis-Plus 拦截器
+/**
+ * MyBatis-Plus 插件配置：注册分页拦截器，让 {@code Page} 分页查询生成 LIMIT / COUNT SQL。
+ */
 @Configuration
 public class MybatisPlusConfig {
 

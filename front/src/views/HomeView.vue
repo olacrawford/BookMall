@@ -5,7 +5,7 @@
         <p class="eyebrow">Platform Overview</p>
         <h3>BookMall 微服务业务总览</h3>
         <p class="muted hero-copy">
-          当前前端已经对接网关入口，围绕认证、图书、购物车、订单、地址和库存服务组织页面结构。
+          当前前端已经对接网关入口，围绕认证、图书、订单三个核心服务组织页面结构。
           这里更像一个已经上线的业务控制台，而不只是接口调试页。
         </p>
       </div>
@@ -73,19 +73,11 @@
         <div class="entry-list">
           <RouterLink class="entry-card" to="/books">
             <strong>图书中心</strong>
-            <p class="muted">浏览图书、按分类检索并加入购物车</p>
-          </RouterLink>
-          <RouterLink class="entry-card" to="/cart">
-            <strong>购物车</strong>
-            <p class="muted">汇总待下单商品并发起结算</p>
+            <p class="muted">浏览图书、分页查询并直接下单</p>
           </RouterLink>
           <RouterLink class="entry-card" to="/orders">
             <strong>订单中心</strong>
             <p class="muted">查看订单状态、详情和取消操作</p>
-          </RouterLink>
-          <RouterLink class="entry-card" to="/addresses">
-            <strong>地址管理</strong>
-            <p class="muted">维护收货地址和默认地址</p>
           </RouterLink>
         </div>
       </section>
@@ -101,10 +93,7 @@ const error = ref('')
 const probes = reactive([
   { name: 'Auth Service', url: '/api/auth/hello', status: '未检查' },
   { name: 'Book Service', url: '/api/books/hello', status: '未检查' },
-  { name: 'Cart Service', url: '/api/cart/hello', status: '未检查' },
-  { name: 'Order Service', url: '/api/orders/hello', status: '未检查' },
-  { name: 'Address Service', url: '/api/address/hello', status: '未检查' },
-  { name: 'Inventory Service', url: '/api/inventory/hello', status: '未检查' }
+  { name: 'Order Service', url: '/api/orders/hello', status: '未检查' }
 ])
 
 const healthyCount = computed(() => probes.filter((item) => item.status !== '失败' && item.status !== '未检查').length)

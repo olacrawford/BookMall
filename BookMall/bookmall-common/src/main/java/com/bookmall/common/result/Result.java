@@ -2,7 +2,7 @@ package com.bookmall.common.result;
 
 import lombok.Data;
 
-//这是后端项目统一接口返回结果封装类
+//统一接口契约，后端项目统一接口返回结果封装类
 @Data
 public class Result<T> {
     private Integer code;

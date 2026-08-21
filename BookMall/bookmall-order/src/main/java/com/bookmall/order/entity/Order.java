@@ -15,7 +15,6 @@ public class Order {
     private Long userId;
     private BigDecimal totalAmount;
     private Integer status;
-    private Integer payStatus;
     private String receiverName;
     private String receiverPhone;
     private String receiverAddress;

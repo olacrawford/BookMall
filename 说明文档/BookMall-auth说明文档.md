@@ -143,7 +143,7 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 
 当前配置包含：
 
-- 服务端口：`8081`
+- 服务端口：`8060`
 - 服务名：`bookmall-auth`
 - 数据源：连接本地 MySQL 的 `bookmall` 数据库
 - MyBatis-Plus 配置

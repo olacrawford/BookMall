@@ -179,14 +179,14 @@ bookmall-auth 已经成功出现在 Nacos 服务列表中。这说明：
             namespace: public
             group: DEFAULT_GROUP
 
-bookmall-book 使用端口 8082，注册成功后 Nacos 服务列表中应同时存在：
+bookmall-book 使用端口 8070，注册成功后 Nacos 服务列表中应同时存在：
 
 - bookmall-auth
 - bookmall-book
 
 验证图书服务本身是否正常：
 
-    http://localhost:8082/books/hello
+    http://localhost:8070/books/hello
 
 ### 8.1 book 注册验证结果
 
@@ -203,7 +203,7 @@ bookmall-book 已经成功出现在 Nacos 服务列表中。目前 Nacos 已经�
 
 固定地址路由写法：
 
-    uri: http://localhost:8081
+    uri: http://localhost:8060
 
 这种写法绕过了 Nacos，Gateway 必须提前知道服务端口。当服务地址变化或启动多个实例时，需要手动修改配置。
 
@@ -276,10 +276,10 @@ book 路由：
 | 服务名 | 端口 |
 | --- | ---: |
 | bookmall-gateway | 8080 |
-| bookmall-auth | 8081 |
-| bookmall-book | 8082 |
+| bookmall-auth | 8060 |
+| bookmall-book | 8070 |
 | bookmall-cart | 8083 |
-| bookmall-order | 8084 |
+| bookmall-order | 8050 |
 | bookmall-inventory | 8085 |
 | bookmall-address | 8086 |
 
@@ -366,7 +366,7 @@ bookmall-order
   -> 调用该实例的 /books/{id}
 ```
 
-因此调用方不再关心 book 服务实际运行在 8082 还是其他端口。
+因此调用方不再关心 book 服务实际运行在 8070 还是其他端口。
 
 ### 11.3 本次代码改动
 
@@ -419,7 +419,7 @@ bookmall-order 已完成以下改造：
 先分别验证下游接口：
 
 ```text
-GET http://localhost:8082/books/1
+GET http://localhost:8070/books/1
 GET http://localhost:8085/inventory/1
 GET http://localhost:8086/address/1
 ```

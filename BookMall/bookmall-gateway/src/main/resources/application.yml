@@ -4,8 +4,13 @@ server:
 spring:
   application:
     name: gateway
+  config:
+    import:
+      - optional:nacos:gateway.yaml
   cloud:
     nacos:
+      config:
+        server-addr: localhost:8848
       discovery:
         server-addr: localhost:8848
         namespace: public
@@ -24,35 +29,18 @@ spring:
             - Path=/api/books/**
           filters:
             - StripPrefix=1
-        - id: cart
-          uri: lb://cart
-          predicates:
-            - Path=/api/cart/**
-          filters:
-            - StripPrefix=1
         - id: order
           uri: lb://order
           predicates:
             - Path=/api/orders/**
           filters:
             - StripPrefix=1
-        - id: inventory
-          uri: lb://inventory
-          predicates:
-            - Path=/api/inventory/**
-          filters:
-            - StripPrefix=1
-        - id: address
-          uri: lb://address
-          predicates:
-            - Path=/api/address/**
-          filters:
-            - StripPrefix=1
       globalcors:
+        # 全局跨域配置，解决前端浏览器跨域报错
         corsConfigurations:
           '[/**]':
             allowedOriginPatterns:
-              - "*"
+              - "*" #允许所有前端域名访问
             allowedMethods:
               - GET
               - POST
@@ -60,5 +48,5 @@ spring:
               - DELETE
               - OPTIONS
             allowedHeaders:
-              - "*"
+              - "*" #允许所有请求头
             allowCredentials: true

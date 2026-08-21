@@ -1,6 +1,6 @@
 # BookMall 项目说明文档
 
-> 一个基于 Spring Cloud Alibaba 的微服务图书商城项目，当前已经完成前后端主链路联通，并落地了 Redis 热点缓存、Sentinel 限流与 Docker Nginx 统一入口，适合作为微服务课程设计、毕业设计或个人作品集项目。
+> 一个基于 Spring Cloud Alibaba 的微服务图书商城项目，当前保留用户、图书、订单三个核心业务服务 + 网关与公共模块，前后端主链路已跑通，适合作为微服务课程设计、毕业设计或个人作品集项目。
 
 ## 项目定位
 
@@ -11,7 +11,7 @@ BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目�
 - 微服务项目学习与练手
 - Java 后端作品集展示
 - Spring Cloud Alibaba 技术栈实践
-- 前后端联调与部署演示
+- 前后端联调演示
 
 ## 项目概览
 
@@ -24,6 +24,8 @@ BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目�
 | 微服务 | Spring Cloud 2023.0.2 |
 | 微服务套件 | Spring Cloud Alibaba 2023.0.1.0 |
 | 注册发现 | Nacos |
+| 配置中心 | Nacos Config |
+| 接口文档 | Knife4j |
 | 网关 | Spring Cloud Gateway |
 | 远程调用 | OpenFeign |
 | 负载均衡 | Spring Cloud LoadBalancer |
@@ -32,179 +34,120 @@ BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目�
 | 缓存 | Redis |
 | 限流 | Sentinel |
 | 前端 | Vue 3 + Vite + Vue Router + Axios |
-| 反向代理 | Nginx |
 | 认证 | JWT + BCrypt |
 
 ### 当前模块
 
 | 模块 | 端口 | 职责 |
 |---|---:|---|
-| `bookmall-common` | - | 公共返回体、错误码、异常处理 |
-| `bookmall-gateway` | 8080 | 统一入口、路由转发、跨域 |
-| `bookmall-auth` | 8081 | 注册、登录、用户信息 |
-| `bookmall-book` | 8082 | 图书、分类、缓存、限流 |
-| `bookmall-cart` | 8083 | 购物车 |
-| `bookmall-order` | 8084 | 订单 |
-| `bookmall-inventory` | 8085 | 库存 |
-| `bookmall-address` | 8086 | 收货地址 |
-| `front` | 80 | 前端静态页面，Nginx 托管 |
+| `bookmall-common` | - | 公共返回体、错误码、异常处理、分页对象 |
+| `bookmall-gateway` | 8080 | 统一入口、路由转发、JWT 鉴权、跨域 |
+| `bookmall-auth` | 8060 | 注册、登录 |
+| `bookmall-book` | 8070 | 图书增删改查、分页、分类 |
+| `bookmall-order` | 8050 | 订单（直接下单、列表、详情、取消） |
+| `front` | 5173 | 前端，Vite 托管 |
 
 ## 项目亮点
 
 - 微服务职责划分清楚，便于继续扩展消息队列、分布式事务和链路追踪
-- 图书服务已经接入 Redis 热点缓存，能演示缓存命中与缓存失效
-- 图书服务已经接入 Sentinel，可直接演示接口限流效果
-- 网关与 Nginx 形成统一入口，前后端联调路径清晰
-- 配置已经做开源化整理，适合直接发布到 GitHub 展示
+- 网关统一鉴权：在 Gateway 校验 JWT，并把 userId 透传给下游（`X-User-Id`），下游不再信任前端传的 userId
+- OpenFeign 服务间调用：订单服务通过 Feign 调图书服务拿价格/标题，下单即快照
+- 统一返回体 + 全局异常处理，接口成功失败格式一致
+- 订单越权校验：只能查看/取消自己的订单
 
 ## 当前架构
 
 ```text
 浏览器
-  -> Docker Nginx (80)
-  -> 前端静态页面
+  -> Vue Frontend (Vite, 5173)
   -> /api/**
-  -> Gateway (8080)
-  -> auth / book / cart / order / inventory / address
-  -> MySQL / Redis / Nacos
+  -> Gateway (8080)  —— 路由 + JWT 鉴权 + 跨域
+  -> auth / book / order
+  -> MySQL / Nacos
 ```
 
-## 开源说明
+鉴权链路：
 
-这个仓库是面向开源发布整理过的版本：
-
-- 已移除源码配置中的固定数据库密码
-- 已移除源码配置中的固定 JWT 密钥
-- 数据源、Nacos、Redis、Sentinel 等参数改为环境变量可覆盖
-- 本仓库默认值只用于本地演示，不建议直接用于生产环境
-
-你在公开仓库中需要重点关注：
-
-- 不要提交真实数据库账号密码
-- 不要提交生产 JWT 密钥
-- 不要提交 `target/`、`node_modules/`、`dist/` 等构建产物
-- 不要提交只适用于你本机的绝对路径配置
-
-## 环境变量
-
-后端当前支持以下环境变量覆盖：
-
-| 变量名 | 默认值 | 说明 |
-|---|---|---|
-| `BOOKMALL_DB_HOST` | `localhost` | MySQL 主机 |
-| `BOOKMALL_DB_PORT` | `3306` | MySQL 端口 |
-| `BOOKMALL_DB_NAME` | `bookmall` | 数据库名 |
-| `BOOKMALL_DB_USERNAME` | `root` | 数据库用户名 |
-| `BOOKMALL_DB_PASSWORD` | `change-me` | 数据库密码 |
-| `BOOKMALL_NACOS_ADDR` | `localhost:8848` | Nacos 地址 |
-| `BOOKMALL_NACOS_NAMESPACE` | `public` | Nacos 命名空间 |
-| `BOOKMALL_NACOS_GROUP` | `DEFAULT_GROUP` | Nacos 分组 |
-| `BOOKMALL_REDIS_HOST` | `localhost` | Redis 主机 |
-| `BOOKMALL_REDIS_PORT` | `6379` | Redis 端口 |
-| `BOOKMALL_REDIS_DB` | `0` | Redis 数据库 |
-| `BOOKMALL_SENTINEL_DASHBOARD` | `localhost:8858` | Sentinel 控制台 |
-| `BOOKMALL_SENTINEL_PORT` | `8720` | Sentinel 本地端口 |
-| `BOOKMALL_JWT_SECRET` | `change-me-in-production` | JWT 密钥 |
-| `BOOKMALL_JWT_EXPIRE_SECONDS` | `86400` | JWT 过期秒数 |
+```text
+前端请求（带 Bearer token）
+  -> 网关 AuthGlobalFilter：校验 JWT → 放行，并把 userId 放入 X-User-Id 头
+  -> 下游服务：从 X-User-Id 拿 userId（前端无法伪造）
+```
 
 ## 快速启动
 
 ### 1. 准备基础环境
 
-如果你要在本地运行，可以先准备：
-
-- MySQL
-- Redis
-- Nacos
-- Nginx
 - Java 17
 - Maven 3.9+
 - Node.js 18+
-
-当前项目默认运行方式：
-
-- Windows + IDEA 跑 Java 微服务
-- Docker 跑 MySQL / Redis / Nacos / Nginx
-- WSL 负责辅助命令执行
+- MySQL（`localhost:3306`）
+- Redis（`localhost:6379`）
+- Nacos（`localhost:8848`）
 
 ### 2. 初始化数据库
 
-数据库名：`bookmall`
+执行脚本 [sql/sql.txt](/D:/workspace_idea/BookMall/sql/sql.txt)，会创建数据库 `bookmall` 及 5 张核心表：
 
-执行脚本：
+- `t_user`（用户）
+- `t_category`（分类，平铺大类）
+- `t_book`（图书）
+- `t_order`（订单）
+- `t_order_item`（订单明细）
 
-- [sql/sql.txt](/D:/workspace_idea/BookMall/sql/sql.txt)
+脚本里还内置了 8 个示例分类（文学、计算机、历史等）。
 
-主要表：
+数据库连接、Redis 地址等环境相关配置放在 **Nacos 配置中心**（dataId 为各服务名，如 `book.yaml`），数据库默认 `root` / `123456`。首次运行或 Nacos 数据丢失后，执行 `nacos-config/publish.sh` 重新发布配置。
 
-- `t_user`
-- `t_book`
-- `t_category`
-- `t_cart`
-- `t_order`
-- `t_order_item`
-- `t_inventory`
-- `t_address`
+### 3. 启动顺序
 
-### 3. 配置本地环境变量
+1. 启动 MySQL、Redis（`docker start redis`）、Nacos
+2. 启动 `bookmall-auth`（8060）
+3. 启动 `bookmall-book`（8070）
+4. 启动 `bookmall-order`（8050）
+5. 启动 `bookmall-gateway`（8080）
 
-建议先在启动命令或 IDE 环境变量中设置：
-
-```text
-BOOKMALL_DB_PASSWORD=root
-BOOKMALL_JWT_SECRET=bookmall-local-demo-secret
-```
-
-如果你的本地环境就是默认的 Docker MySQL / Redis / Nacos，也可以继续使用：
-
-- MySQL: `localhost:3306`
-- Redis: `localhost:6379`
-- Nacos: `localhost:8848`
-
-### 4. 启动顺序
-
-1. 启动 Docker：MySQL、Redis、Nacos、Nginx
-2. 设置本地环境变量，至少补齐数据库密码和 JWT 密钥
-3. 启动 `bookmall-auth`
-4. 启动 `bookmall-book`
-5. 启动 `bookmall-cart`
-6. 启动 `bookmall-inventory`
-7. 启动 `bookmall-address`
-8. 启动 `bookmall-order`
-9. 启动 `bookmall-gateway`
-
-### 5. 前端运行
-
-前端目录：
-
-- [front](/D:/workspace_idea/BookMall/front)
-
-开发模式：
+### 4. 前端运行
 
 ```bash
 cd front
 npm install
-npm run dev
+npm run dev    # 默认 5173，/api 代理到网关 8080
 ```
 
-如果沿用当前部署方式，可将打包后的静态资源放到 Docker Nginx 中统一托管。
+## 验证 Redis 缓存与 Sentinel 限流
+
+### Redis 缓存
+
+连续两次请求图书详情，第一次查库、第二次命中缓存：
+
+```bash
+curl http://localhost:8080/api/books/1   # 第一次：查库，写入缓存
+curl http://localhost:8080/api/books/1   # 第二次：命中缓存
+docker exec -it redis redis-cli keys 'book*'   # 能看到 book::1 缓存键
+```
+
+修改/删除图书后缓存会自动失效，下次查询会重新查库。
+
+### Sentinel 限流
+
+快速连续请求图书列表（`GET /books`，即 `listBooks`），超过每秒 1 次就触发限流：
+
+```bash
+for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
+# 第一次正常，后面返回 429「图书列表请求过于频繁，请稍后再试」
+```
+
+> 注意：限流加在 `listBooks`（`GET /books`）上，而前端图书页用的是分页接口 `/books/page`，所以前端页面不会触发限流，演示时用上面的 curl 命令即可。
 
 ## 访问方式
 
-### 前端
-
-- `http://localhost`
-
-### 网关
-
-- `http://localhost:8080`
-
-### 常用接口
-
-- `GET http://localhost/api/auth/hello`
-- `GET http://localhost/api/books/hello`
-- `GET http://localhost/api/books`
-- `GET http://localhost/api/books/1`
+- 前端：`http://localhost:5173`
+- 网关：`http://localhost:8080`
+- 常用接口：
+  - `GET http://localhost:8080/api/books/hello`
+  - `GET http://localhost:8080/api/books`
+  - `GET http://localhost:8080/api/books/page?pageNum=1&pageSize=10`
 
 ## 已完成的主要功能
 
@@ -212,100 +155,89 @@ npm run dev
 
 - 登录 / 注册页
 - 登录后进入首页总览
-- 图书中心、购物车、订单、地址管理
-- 分类展示改成更接近线上网站的格式
-- 前端已由现有 Docker Nginx 托管
+- 图书中心：分页列表 + 分类下拉筛选 + 关键字搜索 + 立即购买
+- 订单中心：订单列表、详情、取消
 
 ### 后端基础能力
 
 - Nacos 服务注册发现
-- Gateway 路由转发
+- Gateway 路由转发 + JWT 鉴权过滤器
 - OpenFeign 服务间调用
 - 统一 `Result` 返回体
 - 全局异常处理
-- JWT 登录态
-
-### 增强项
-
-- Redis 热点图书缓存
-- Sentinel 热点接口限流
-- Nginx 前端统一入口
+- JWT 登录态 + BCrypt 密码加密
 
 ## 关键实现
 
 ### `bookmall-common`
 
-- `Result<T>`：统一返回体
+- `Result<T>`：统一返回体 `{code, message, data}`
 - `ErrorCode`：统一错误码
 - `BusinessException`：业务异常
-- `GlobalExceptionHandler`：统一异常转 `Result`
+- `GlobalExceptionHandler`：全局异常转 `Result`
+- `PageResult<T>`：分页返回对象（records/total/pages/current/size）
 
 ### `bookmall-gateway`
 
-- 使用 `lb://` 路由到各服务
-- `/api/auth/**`、`/api/books/**` 等统一转发
+- `lb://` 路由到各服务，`StripPrefix=1` 去掉 `/api` 前缀
+- `AuthGlobalFilter`：全局过滤器，校验 JWT 签名与过期时间，把 `userId` 放入 `X-User-Id` 头透传；登录/注册/`hello` 接口放行
 - 全局跨域已配置
+
+### `bookmall-auth`
+
+- `POST /auth/register`：注册，BCrypt 加密密码
+- `POST /auth/login`：登录，校验密码后签发 JWT
 
 ### `bookmall-book`
 
-- 图书列表、详情、搜索、分页、增删改查
-- 分类树查询
-- Redis 缓存：`book:list`、`book:detail:{id}`、`book:category:tree`
-- Sentinel 限流：列表、详情、搜索、分页
-- 写操作后自动清理缓存
+- `GET /books`、`GET /books/{id}`：查询列表 / 详情
+- `GET /books/page`：分页（支持书名关键字 + 分类精确筛选）
+- `POST /books`、`PUT /books/{id}`、`DELETE /books/{id}`：增改删（软删除）
+- `GET /books/categories`：平铺分类列表
+- 分页使用 MyBatis-Plus `PaginationInnerInterceptor`
+- Redis 缓存：`getBookById` 结果缓存到 Redis，增删改时失效缓存
+- Sentinel 限流：`listBooks` 配置 QPS=1 的限流，超限返回友好提示
 
 ### `bookmall-order`
 
-- 已接入 OpenFeign
-- 通过 `BookClient`、`InventoryClient`、`AddressClient` 编排下单
-- 使用快照 DTO 传输必要字段
+- `POST /orders`：直接下单（Feign 调图书服务拿价格 → 算总价 → 落订单 + 明细快照）
+- `GET /orders`：订单列表
+- `GET /orders/{id}`、`PUT /orders/{id}/cancel`：详情 / 取消（含越权校验，只能操作自己的订单）
+- userId 从网关透传的 `X-User-Id` 头获取
 
-## 验证方式
+### 配置中心（Nacos Config）
 
-### Redis
+- 各服务的 `application.yml` 只保留本机配置（端口、服务名、Nacos 地址）
+- 数据源、JWT 等环境相关配置放在 Nacos，dataId 为 `{服务名}.yaml`（如 `auth.yaml`）
+- 通过 `spring.config.import: optional:nacos:xxx.yaml` 拉取，改动 Nacos 配置无需重启即可生效
 
-```bash
-docker exec -it redis redis-cli
-keys book:*
-```
+### 接口文档（Knife4j）
 
-### 网关
-
-```bash
-curl http://localhost:8080/api/books/hello
-```
-
-### Nginx 前端入口
-
-```bash
-curl http://localhost/api/books/hello
-```
+- 三个业务服务已接入 Knife4j，启动后访问：
+  - 认证服务：`http://localhost:8060/doc.html`
+  - 图书服务：`http://localhost:8070/doc.html`
+  - 订单服务：`http://localhost:8050/doc.html`
 
 ## 说明文档
 
 更细的模块说明在 `说明文档/` 目录下：
 
 - [说明文档/BookMall-基础设施搭建说明.md](/D:/workspace_idea/BookMall/说明文档/BookMall-基础设施搭建说明.md)
-- [说明文档/BookMall-增强项实施说明.md](/D:/workspace_idea/BookMall/说明文档/BookMall-增强项实施说明.md)
-- [说明文档/BookMall-Nginx部署说明.md](/D:/workspace_idea/BookMall/说明文档/BookMall-Nginx部署说明.md)
 - [说明文档/BookMall-auth说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-auth说明文档.md)
 - [说明文档/BookMall-book说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-book说明文档.md)
-- [说明文档/BookMall-cart说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-cart说明文档.md)
 - [说明文档/BookMall-gateway说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-gateway说明文档.md)
-- [说明文档/BookMall-inventory说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-inventory说明文档.md)
 - [说明文档/BookMall-order说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-order说明文档.md)
 
 ## 目前进度
 
 ### 已完成
 
-- 项目基础架构搭建
+- 项目基础架构搭建（3 业务服务 + 网关 + 公共模块）
 - 全部服务接入 Nacos
-- Gateway 路由改为服务发现
-- 订单服务改用 OpenFeign
-- Book 服务 Redis 缓存
-- Book 服务 Sentinel 限流
-- 前端 Nginx 统一入口
+- Gateway 路由 + JWT 统一鉴权 + 用户身份透传
+- 订单服务 OpenFeign 下单 + 越权校验
+- 图书服务 CRUD + 分页 + 平铺分类
+- 前端登录/图书/订单主链路联通
 - 文档体系整理
 
 ### 待继续

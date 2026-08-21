@@ -1,180 +1,118 @@
 <template>
   <section class="card stack">
-    <div class="section-head books-head">
+    <div class="section-head">
       <div>
         <p class="eyebrow">Books</p>
         <h3>图书列表</h3>
       </div>
-    </div>
-
-    <div class="toolbar">
-      <button class="ghost" type="button" :class="{ active: mode === 'list' }" @click="setMode('list')">列表</button>
-      <button class="ghost" type="button" :class="{ active: mode === 'search' }" @click="setMode('search')">搜索</button>
-      <button class="ghost" type="button" :class="{ active: mode === 'category' }" @click="setMode('category')">分类</button>
-    </div>
-
-    <div v-if="mode === 'search'" class="sub-card search-panel">
-      <div class="search-form">
-        <input v-model="keyword" placeholder="搜索书名或作者" @keyup.enter="searchBooks" />
-        <button class="primary" type="button" @click="searchBooks">搜索</button>
-        <button class="ghost" type="button" @click="clearSearch">清空</button>
+      <div class="inline-form">
+        <select v-model="selectedCategoryId" @change="search">
+          <option :value="null">全部分类</option>
+          <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.name }}</option>
+        </select>
+        <input v-model="keyword" placeholder="搜索书名" @keyup.enter="search" />
+        <button class="primary" type="button" @click="search">搜索</button>
       </div>
     </div>
-
-    <section v-if="mode === 'category'" class="sub-card category-showcase stack">
-      <div class="category-hero">
-        <div>
-          <p class="eyebrow">Category Mall</p>
-          <h4>图书分类</h4>
-        </div>
-        <button class="ghost" type="button" @click="loadCategories">刷新分类</button>
-      </div>
-
-      <div v-if="categoryLoading" class="muted">正在加载分类...</div>
-
-      <template v-else>
-        <div v-if="rootCategories.length" class="category-shell">
-          <aside class="category-sidebar">
-            <button
-              v-for="item in rootCategories"
-              :key="item.id"
-              class="category-nav-item"
-              :class="{ active: selectedCategory?.id === item.id }"
-              type="button"
-              @click="selectCategory(item)"
-            >
-              <span>{{ item.name }}</span>
-              <small>{{ item.children?.length || 0 }} 个分区</small>
-            </button>
-          </aside>
-
-          <section v-if="selectedCategory" class="category-stage">
-            <div class="category-stage-head">
-              <div>
-                <div class="category-breadcrumb">
-                  <span>图书分类</span>
-                  <span>/</span>
-                  <strong>{{ selectedCategory.name }}</strong>
-                </div>
-                <h4>{{ selectedCategory.name }}</h4>
-              </div>
-              <button class="primary" type="button" @click="filterByCategory(selectedCategory)">查看全部</button>
-            </div>
-
-            <div v-if="featuredChildren.length" class="featured-strip">
-              <button
-                v-for="item in featuredChildren"
-                :key="item.id"
-                class="featured-chip"
-                type="button"
-                @click="openCategory(item)"
-              >
-                {{ item.name }}
-              </button>
-            </div>
-
-            <div v-if="childCategories.length" class="subcategory-grid">
-              <article v-for="child in childCategories" :key="child.id" class="subcategory-card">
-                <div class="subcategory-top">
-                  <div>
-                    <h5>{{ child.name }}</h5>
-                  </div>
-                  <button class="ghost" type="button" @click="filterByCategory(child)">进入分类</button>
-                </div>
-
-                <div v-if="child.children?.length" class="subcategory-links">
-                  <button
-                    v-for="leaf in child.children"
-                    :key="leaf.id"
-                    class="leaf-link"
-                    type="button"
-                    @click="filterByCategory(leaf)"
-                  >
-                    {{ leaf.name }}
-                  </button>
-                </div>
-              </article>
-            </div>
-          </section>
-        </div>
-        <p v-else class="muted">暂无分类数据。</p>
-      </template>
-    </section>
 
     <div v-if="error" class="alert">{{ error }}</div>
+    <div v-if="notice" class="notice">{{ notice }}</div>
 
-    <div class="meta-line" v-if="metaText">{{ metaText }}</div>
+    <div class="meta-line" v-if="total > 0">共 {{ total }} 本 · 第 {{ pageNum }} / {{ pages }} 页</div>
 
     <div v-if="loading" class="muted">正在加载图书...</div>
 
-    <div class="grid cards" v-else>
+    <div v-else-if="books.length" class="grid cards">
       <article v-for="book in books" :key="book.id" class="book-card">
         <div class="cover">{{ (book.title || 'BK').slice(0, 2) }}</div>
         <h4>{{ book.title }}</h4>
         <p>{{ book.author || '匿名作者' }}</p>
-        <p class="muted" v-if="book.description">{{ book.description }}</p>
         <div class="row">
           <strong>￥{{ book.price }}</strong>
-          <button class="ghost" type="button" @click="addToCart(book)">加入购物车</button>
+          <button class="primary" type="button" @click="openBuy(book)">立即购买</button>
         </div>
       </article>
+    </div>
+    <p v-else class="muted">暂无图书。</p>
+
+    <div v-if="pages > 1" class="pagination">
+      <button class="ghost" type="button" :disabled="pageNum <= 1" @click="goPage(pageNum - 1)">上一页</button>
+      <span class="muted">{{ pageNum }} / {{ pages }}</span>
+      <button class="ghost" type="button" :disabled="pageNum >= pages" @click="goPage(pageNum + 1)">下一页</button>
+    </div>
+
+    <div v-if="buyingBook" class="buy-modal">
+      <div class="buy-card">
+        <div class="buy-head">
+          <div>
+            <p class="eyebrow">Checkout</p>
+            <h4>{{ buyingBook.title }}</h4>
+          </div>
+          <button class="ghost" type="button" @click="closeBuy">关闭</button>
+        </div>
+
+        <div class="buy-meta">
+          <span>单价 ￥{{ buyingBook.price }}</span>
+          <span class="buy-total">合计 ￥{{ (Number(buyingBook.price) * orderForm.quantity).toFixed(2) }}</span>
+        </div>
+
+        <form class="form-grid" @submit.prevent="submitOrder">
+          <label>
+            <span>购买数量</span>
+            <input v-model.number="orderForm.quantity" type="number" min="1" />
+          </label>
+          <label>
+            <span>收货人</span>
+            <input v-model="orderForm.receiverName" placeholder="收货人姓名" />
+          </label>
+          <label>
+            <span>收货电话</span>
+            <input v-model="orderForm.receiverPhone" placeholder="手机号" />
+          </label>
+          <label>
+            <span>收货地址</span>
+            <input v-model="orderForm.receiverAddress" placeholder="省市区 + 详细地址" />
+          </label>
+          <button class="primary full" type="submit">确认下单</button>
+        </form>
+      </div>
     </div>
   </section>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { bookApi, cartApi } from '../api/bookmall'
+import { onMounted, reactive, ref } from 'vue'
+import { bookApi, orderApi } from '../api/bookmall'
 import { getCurrentUser } from '../utils/session'
 
 const books = ref([])
 const keyword = ref('')
+const pageNum = ref(1)
+const pageSize = ref(8)
+const total = ref(0)
+const pages = ref(0)
 const error = ref('')
+const notice = ref('')
 const loading = ref(false)
-const categoryLoading = ref(false)
-const mode = ref('list')
-const metaText = ref('')
-const categoryTree = ref([])
-const selectedCategory = ref(null)
+const categories = ref([])
+const selectedCategoryId = ref(null)
+const buyingBook = ref(null)
+const orderForm = reactive({ quantity: 1, receiverName: '', receiverPhone: '', receiverAddress: '' })
 
-const rootCategories = computed(() => categoryTree.value)
-const childCategories = computed(() => selectedCategory.value?.children || [])
-const featuredChildren = computed(() => childCategories.value.slice(0, 6))
-
-function setMode(next) {
-  mode.value = next
-  error.value = ''
-
-  if (next === 'list') {
-    loadBooks()
-    return
-  }
-
-  if (next === 'search') {
-    metaText.value = keyword.value ? `搜索结果：${keyword.value}` : ''
-    return
-  }
-
-  if (next === 'category') {
-    loadCategories()
-  }
-}
-
-async function loadBooks(params) {
-  error.value = ''
+async function loadBooks() {
   loading.value = true
+  error.value = ''
   try {
-    books.value = params ? await bookApi.search(params) : await bookApi.list()
-    if (params?.keyword) {
-      mode.value = 'search'
-      metaText.value = `搜索结果：${params.keyword}`
-    } else if (params?.categoryId) {
-      mode.value = 'category'
-      metaText.value = `分类：${params.categoryName || ''}`
-    } else {
-      mode.value = 'list'
-      metaText.value = '最新图书列表'
-    }
+    const data = await bookApi.page({
+      pageNum: pageNum.value,
+      pageSize: pageSize.value,
+      keyword: keyword.value.trim() || undefined,
+      categoryId: selectedCategoryId.value || undefined
+    })
+    books.value = data.records || []
+    total.value = data.total || 0
+    pages.value = data.pages || 0
+    pageNum.value = data.current || 1
   } catch (e) {
     error.value = e.message || '加载图书失败'
   } finally {
@@ -182,298 +120,157 @@ async function loadBooks(params) {
   }
 }
 
-async function searchBooks() {
-  if (!keyword.value.trim()) {
-    error.value = '请输入搜索关键词'
-    return
-  }
-  await loadBooks({ keyword: keyword.value.trim() })
-}
-
-async function clearSearch() {
-  keyword.value = ''
-  await loadBooks()
+function search() {
+  pageNum.value = 1
+  loadBooks()
 }
 
 async function loadCategories() {
-  error.value = ''
-  categoryLoading.value = true
   try {
-    categoryTree.value = await bookApi.categoryTree()
-    selectedCategory.value = selectedCategory.value
-      ? findCategoryById(categoryTree.value, selectedCategory.value.id) || categoryTree.value[0] || null
-      : categoryTree.value[0] || null
-    if (!metaText.value.startsWith('分类：')) {
-      metaText.value = ''
-    }
+    categories.value = await bookApi.categories()
   } catch (e) {
-    error.value = e.message || '加载分类失败'
-  } finally {
-    categoryLoading.value = false
+    // 分类加载失败不阻塞图书列表
   }
 }
 
-function findCategoryById(list, id) {
-  for (const item of list) {
-    if (item.id === id) return item
-    if (item.children?.length) {
-      const matched = findCategoryById(item.children, id)
-      if (matched) return matched
-    }
-  }
-  return null
+function goPage(p) {
+  if (p < 1 || p > pages.value) return
+  pageNum.value = p
+  loadBooks()
 }
 
-function selectCategory(item) {
-  selectedCategory.value = item
-}
-
-function openCategory(item) {
-  if (item.children?.length) {
-    selectCategory(item)
-    return
-  }
-  filterByCategory(item)
-}
-
-async function filterByCategory(item) {
-  selectedCategory.value = item.children?.length ? item : selectedCategory.value
-  await loadBooks({ categoryId: item.id, categoryName: item.name })
-}
-
-async function addToCart(book) {
-  const user = getCurrentUser()
-  if (!user?.userId) {
+function openBuy(book) {
+  if (!getCurrentUser()?.userId) {
     error.value = '请先登录'
     return
   }
+  buyingBook.value = book
+  orderForm.quantity = 1
+  orderForm.receiverName = ''
+  orderForm.receiverPhone = ''
+  orderForm.receiverAddress = ''
+  error.value = ''
+}
+
+function closeBuy() {
+  buyingBook.value = null
+}
+
+async function submitOrder() {
+  if (!buyingBook.value) return
+  if (!getCurrentUser()?.userId) {
+    error.value = '请先登录'
+    return
+  }
+  if (!orderForm.receiverName.trim() || !orderForm.receiverPhone.trim() || !orderForm.receiverAddress.trim()) {
+    error.value = '请填写完整的收货信息'
+    return
+  }
 
   try {
-    await cartApi.add({ userId: user.userId, bookId: book.id, quantity: 1 })
+    await orderApi.create({
+      bookId: buyingBook.value.id,
+      quantity: orderForm.quantity,
+      receiverName: orderForm.receiverName,
+      receiverPhone: orderForm.receiverPhone,
+      receiverAddress: orderForm.receiverAddress
+    })
     error.value = ''
-    metaText.value = `已加入购物车：${book.title}`
+    notice.value = `下单成功：${buyingBook.value.title} × ${orderForm.quantity}`
+    closeBuy()
   } catch (e) {
-    error.value = e.message || '加入购物车失败'
+    error.value = e.message || '下单失败'
   }
 }
 
-onMounted(loadBooks)
+onMounted(() => {
+  loadCategories()
+  loadBooks()
+})
 </script>
 
 <style scoped>
-.books-head {
-  align-items: flex-end;
-}
-
-.toolbar {
+.inline-form {
   display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
-.toolbar .active {
-  background: rgba(180, 83, 9, 0.14);
-  border-color: rgba(180, 83, 9, 0.22);
+.inline-form input {
+  width: 240px;
 }
 
-.search-panel {
-  display: grid;
-  gap: 1rem;
-}
-
-.search-form {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.search-form input {
-  flex: 1;
-  min-width: 220px;
+.inline-form select {
+  width: 160px;
 }
 
 .meta-line {
   color: var(--muted);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 
-.sub-card {
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.buy-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(37, 31, 21, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 100;
   padding: 1rem;
-  border-radius: 20px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.62);
 }
 
-.category-showcase {
-  gap: 1.1rem;
-  padding: 1.25rem;
-  background: linear-gradient(180deg, rgba(255, 251, 245, 0.96), rgba(252, 247, 238, 0.92));
-}
-
-.category-hero {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.category-hero h4 {
-  margin: 0;
-  font-size: 1.4rem;
-}
-
-.category-shell {
-  display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  gap: 1rem;
-  align-items: start;
-}
-
-.category-sidebar {
-  display: grid;
-  gap: 0.55rem;
-  padding: 0.85rem;
+.buy-card {
+  width: 100%;
+  max-width: 480px;
+  background: var(--surface);
   border-radius: 22px;
-  background: rgba(37, 31, 21, 0.96);
-}
-
-.category-nav-item {
-  text-align: left;
-  display: grid;
-  gap: 0.2rem;
-  padding: 0.9rem 1rem;
-  border-radius: 16px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: #f5ebda;
-}
-
-.category-nav-item span {
-  font-weight: 600;
-}
-
-.category-nav-item small {
-  color: rgba(245, 235, 218, 0.62);
-}
-
-.category-nav-item.active {
-  background: linear-gradient(135deg, rgba(180, 83, 9, 0.92), rgba(154, 71, 8, 0.92));
-  color: #fff;
-}
-
-.category-nav-item.active small {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.category-stage {
+  padding: 1.5rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   display: grid;
   gap: 1rem;
-  min-width: 0;
 }
 
-.category-stage-head {
+.buy-head {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 1rem;
-  flex-wrap: wrap;
-  padding: 1.15rem 1.25rem;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(180, 83, 9, 0.12);
 }
 
-.category-stage-head h4 {
+.buy-head h4 {
   margin: 0.2rem 0 0;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
 }
 
-.category-breadcrumb {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  color: var(--muted);
-  font-size: 0.88rem;
-}
-
-.featured-strip {
+.buy-meta {
   display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.featured-chip {
-  padding: 0.7rem 1rem;
-  border-radius: 999px;
-  border: 1px solid rgba(180, 83, 9, 0.16);
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--accent);
-}
-
-.subcategory-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-}
-
-.subcategory-card {
-  display: grid;
-  gap: 0.9rem;
-  padding: 1.1rem;
-  border-radius: 20px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.92);
-}
-
-.subcategory-top {
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  align-items: center;
+  padding: 0.6rem 0.9rem;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.9rem;
 }
 
-.subcategory-top h5 {
-  margin: 0;
+.buy-total {
+  font-weight: 700;
   font-size: 1rem;
 }
 
-.subcategory-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-}
-
-.leaf-link {
-  padding: 0.5rem 0.8rem;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: rgba(180, 83, 9, 0.08);
-  color: #8f4107;
-}
-
-@media (max-width: 980px) {
-  .category-shell {
-    grid-template-columns: 1fr;
-  }
-
-  .category-sidebar {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  }
-}
-
 @media (max-width: 720px) {
-  .search-form {
+  .inline-form {
     flex-direction: column;
   }
 
-  .subcategory-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .subcategory-top {
-    flex-direction: column;
-    align-items: flex-start;
+  .inline-form input {
+    width: 100%;
   }
 }
 </style>

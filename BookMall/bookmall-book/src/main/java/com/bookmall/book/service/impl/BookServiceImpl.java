@@ -4,155 +4,136 @@ import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.bookmall.book.constant.CacheKeys;
 import com.bookmall.book.dto.BookCreateRequest;
-import com.bookmall.book.dto.BookSearchRequest;
 import com.bookmall.book.dto.BookUpdateRequest;
 import com.bookmall.book.entity.Book;
-import com.bookmall.book.entity.Category;
-import com.bookmall.book.exception.SentinelBlockedException;
 import com.bookmall.book.mapper.BookMapper;
-import com.bookmall.book.mapper.CategoryMapper;
 import com.bookmall.book.service.BookService;
-import com.bookmall.book.service.support.CacheSupport;
 import com.bookmall.book.vo.BookDetailVO;
 import com.bookmall.book.vo.BookVO;
+import com.bookmall.common.exception.BusinessException;
 import com.bookmall.common.result.PageResult;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 public class BookServiceImpl implements BookService {
 
     private final BookMapper bookMapper;
-    private final CategoryMapper categoryMapper;
-    private final CacheSupport cacheSupport;
 
-    public BookServiceImpl(BookMapper bookMapper, CategoryMapper categoryMapper, CacheSupport cacheSupport) {
+    //构造注入mapper
+    public BookServiceImpl(BookMapper bookMapper) {
         this.bookMapper = bookMapper;
-        this.categoryMapper = categoryMapper;
-        this.cacheSupport = cacheSupport;
     }
 
+    /**
+     * 查询所有上架图书列表
+     * @return 图书VO集合
+     */
     @Override
-    @SentinelResource(value = "/books", blockHandler = "handleListBlocked")
+    @SentinelResource(value = "listBooks", blockHandler = "listBooksBlocked")
     public List<BookVO> listBooks() {
-        Object cached = cacheSupport.get(CacheKeys.BOOK_LIST);
-        if (cached instanceof List<?> list && !list.isEmpty()) {
-            return list.stream().map(item -> (BookVO) item).collect(Collectors.toList());
-        }
-        if (cacheSupport.isEmptyValue(cached)) {
-            return List.of();
-        }
-
-        List<BookVO> books = bookMapper.selectList(
+        //只查询状态=1（上架）的图书，entity转为VO返回
+        return bookMapper.selectList(
                 new LambdaQueryWrapper<Book>().eq(Book::getStatus, 1)
         ).stream().map(this::toBookVO).collect(Collectors.toList());
-
-        if (books.isEmpty()) {
-            cacheSupport.putEmpty(CacheKeys.BOOK_LIST);
-        } else {
-            cacheSupport.putBookList(books);
-        }
-        return books;
     }
 
-    @Override
-    @SentinelResource(value = "/books/{id}", blockHandler = "handleDetailBlocked")
-    public BookDetailVO getBookById(Long id) {
-        String key = CacheKeys.bookDetail(id);
-        Object cached = cacheSupport.get(key);
-        if (cached instanceof BookDetailVO vo) {
-            return vo;
-        }
-        if (cacheSupport.isEmptyValue(cached)) {
-            return null;
-        }
+    // 限流触发时返回友好提示
+    public List<BookVO> listBooksBlocked(BlockException e) {
+        throw new BusinessException(429, "图书列表请求过于频繁，请稍后再试");
+    }
 
+    /**
+     * 根据id查询图书详情
+     * @param id 图书id
+     * @return 图书详情VO，不存在返回null
+     */
+    @Override
+    @Cacheable(cacheNames = "book")
+    public BookDetailVO getBookById(Long id) {
         Book book = bookMapper.selectOne(
                 new LambdaQueryWrapper<Book>()
                         .eq(Book::getId, id)
                         .eq(Book::getStatus, 1)
         );
         if (book == null) {
-            cacheSupport.putEmpty(key);
             return null;
         }
-
-        BookDetailVO vo = new BookDetailVO(
-                book.getId(),
-                book.getTitle(),
-                book.getAuthor(),
-                book.getPrice(),
-                book.getCategoryId(),
-                book.getCoverUrl(),
-                book.getDescription(),
-                book.getStatus()
-        );
-        cacheSupport.putBookDetail(id, vo);
-        return vo;
+        return toDetailVO(book);
     }
 
+    /**
+     * 图书分页查询，支持书名关键词和分类精确筛选
+     * @param pageNum 页码
+     * @param pageSize 每页条数
+     * @param keyword 书名搜索关键词
+     * @param categoryId 分类id（精确匹配，不包含子分类）
+     * @return 分页结果对象
+     */
     @Override
-    @SentinelResource(value = "/books/search", blockHandler = "handleSearchBlocked")
-    public List<BookVO> searchBooks(BookSearchRequest request) {
-        LambdaQueryWrapper<Book> wrapper = new LambdaQueryWrapper<Book>()
-                .eq(Book::getStatus, 1)
-                .like(request.getKeyword() != null && !request.getKeyword().isBlank(),
-                        Book::getTitle, request.getKeyword());
-
-        Set<Long> categoryIds = collectCategoryIds(request.getCategoryId());
-        if (!categoryIds.isEmpty()) {
-            // 选中父分类时，递归把全部子分类一起纳入搜索范围。
-            wrapper.in(Book::getCategoryId, categoryIds);
-        }
-
-        List<Book> books = bookMapper.selectList(wrapper);
-
-        return books.stream()
-                .map(this::toBookVO)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @SentinelResource(value = "/books/page", blockHandler = "handlePageBlocked")
     public PageResult<BookVO> pageBooks(Integer pageNum, Integer pageSize, String keyword, Long categoryId) {
+        //页码、页大小容错处理，为空或小于1给默认值
         long currentPage = pageNum == null || pageNum < 1 ? 1 : pageNum;
         long size = pageSize == null || pageSize < 1 ? 10 : pageSize;
 
         LambdaQueryWrapper<Book> wrapper = new LambdaQueryWrapper<Book>()
                 .eq(Book::getStatus, 1)
+                //关键词不为空才执行like模糊查询
                 .like(keyword != null && !keyword.isBlank(), Book::getTitle, keyword)
+                //分类不为空才按分类精确筛选
+                .eq(categoryId != null, Book::getCategoryId, categoryId)
                 .orderByDesc(Book::getId);
 
-        Set<Long> categoryIds = collectCategoryIds(categoryId);
-        if (!categoryIds.isEmpty()) {
-            wrapper.in(Book::getCategoryId, categoryIds);
-        }
-
+        //mybatis‑plus分页对象
         Page<Book> page = new Page<>(currentPage, size);
         bookMapper.selectPage(page, wrapper);
 
+        //entity转VO
         List<BookVO> records = page.getRecords().stream()
                 .map(this::toBookVO)
                 .collect(Collectors.toList());
 
+        //封装自定义分页返回对象
         return new PageResult<>(records, page.getTotal(), page.getPages(), page.getCurrent(), page.getSize());
     }
 
+    /**
+     * 新增图书
+     * @param request 新增图书请求DTO
+     * @return 新增完成的图书详情VO
+     */
     @Override
+    @CacheEvict(cacheNames = "book", allEntries = true)
     public BookDetailVO createBook(BookCreateRequest request) {
-        BookDetailVO vo = saveBook(request, null);
-        cacheSupport.clearBookCaches();
-        return vo;
+        Book book = new Book();
+        book.setTitle(request.getTitle());
+        book.setAuthor(request.getAuthor());
+        book.setPrice(request.getPrice());
+        book.setCategoryId(request.getCategoryId());
+        book.setCoverUrl(request.getCoverUrl());
+        book.setDescription(request.getDescription());
+        book.setStatus(1);
+        book.setCreateTime(LocalDateTime.now());
+        book.setUpdateTime(LocalDateTime.now());
+
+        bookMapper.insert(book);
+        return toDetailVO(book);
     }
 
+    /**
+     * 修改图书信息
+     * @param id 图书id
+     * @param request 修改请求DTO
+     * @return 修改后详情VO，图书不存在返回null
+     */
     @Override
+    @CacheEvict(cacheNames = "book", allEntries = true)
     public BookDetailVO updateBook(Long id, BookUpdateRequest request) {
         Book book = bookMapper.selectById(id);
         if (book == null) {
@@ -169,92 +150,28 @@ public class BookServiceImpl implements BookService {
         book.setUpdateTime(LocalDateTime.now());
 
         bookMapper.updateById(book);
-        // 图书更新后统一失效列表、分类树和当前详情缓存。
-        cacheSupport.clearBookCaches();
-        cacheSupport.clearBookDetail(id);
-
-        return new BookDetailVO(
-                book.getId(),
-                book.getTitle(),
-                book.getAuthor(),
-                book.getPrice(),
-                book.getCategoryId(),
-                book.getCoverUrl(),
-                book.getDescription(),
-                book.getStatus()
-        );
+        return toDetailVO(book);
     }
 
+    /**
+     * 删除图书
+     * @param id 图书id
+     * @return true删除成功，false图书不存在
+     */
     @Override
+    @CacheEvict(cacheNames = "book", allEntries = true)
     public boolean deleteBook(Long id) {
         Book book = bookMapper.selectById(id);
         if (book == null) {
             return false;
         }
-
         bookMapper.deleteById(id);
-        cacheSupport.clearBookCaches();
-        cacheSupport.clearBookDetail(id);
         return true;
     }
 
-    @Override
-    public boolean updateBookStatus(Long id, Integer status) {
-        Book book = bookMapper.selectById(id);
-        if (book == null) {
-            return false;
-        }
-
-        book.setStatus(status);
-        book.setUpdateTime(LocalDateTime.now());
-        bookMapper.updateById(book);
-        cacheSupport.clearBookCaches();
-        cacheSupport.clearBookDetail(id);
-        return true;
-    }
-
-    public List<BookVO> handleListBlocked(BlockException e) {
-        throw new SentinelBlockedException("图书列表请求过于频繁，请稍后再试", e);
-    }
-
-    public BookDetailVO handleDetailBlocked(Long id, BlockException e) {
-        throw new SentinelBlockedException("图书详情请求过于频繁，请稍后再试", e);
-    }
-
-    public List<BookVO> handleSearchBlocked(BookSearchRequest request, BlockException e) {
-        throw new SentinelBlockedException("图书搜索请求过于频繁，请稍后再试", e);
-    }
-
-    public PageResult<BookVO> handlePageBlocked(Integer pageNum, Integer pageSize, String keyword, Long categoryId, BlockException e) {
-        throw new SentinelBlockedException("图书分页请求过于频繁，请稍后再试", e);
-    }
-
-    private BookDetailVO saveBook(BookCreateRequest request, Long id) {
-        Book book = new Book();
-        book.setId(id);
-        book.setTitle(request.getTitle());
-        book.setAuthor(request.getAuthor());
-        book.setPrice(request.getPrice());
-        book.setCategoryId(request.getCategoryId());
-        book.setCoverUrl(request.getCoverUrl());
-        book.setDescription(request.getDescription());
-        book.setStatus(1);
-        book.setCreateTime(LocalDateTime.now());
-        book.setUpdateTime(LocalDateTime.now());
-
-        bookMapper.insert(book);
-        return new BookDetailVO(
-                book.getId(),
-                book.getTitle(),
-                book.getAuthor(),
-                book.getPrice(),
-                book.getCategoryId(),
-                book.getCoverUrl(),
-                book.getDescription(),
-                book.getStatus()
-        );
-    }
-
+    /**
+     * 转换：Book实体 → BookVO列表简单对象
+     */
     private BookVO toBookVO(Book book) {
         return new BookVO(
                 book.getId(),
@@ -266,28 +183,20 @@ public class BookServiceImpl implements BookService {
         );
     }
 
-    private Set<Long> collectCategoryIds(Long categoryId) {
-        Set<Long> categoryIds = new HashSet<>();
-        if (categoryId == null) {
-            return categoryIds;
-        }
-
-        categoryIds.add(categoryId);
-        collectChildren(categoryId, categoryIds);
-        return categoryIds;
-    }
-
-    private void collectChildren(Long parentId, Set<Long> categoryIds) {
-        List<Category> children = categoryMapper.selectList(
-                new LambdaQueryWrapper<Category>()
-                        .eq(Category::getStatus, 1)
-                        .eq(Category::getParentId, parentId)
+    /**
+     * 转换：Book实体 → BookDetailVO详情对象
+     */
+    private BookDetailVO toDetailVO(Book book) {
+        return new BookDetailVO(
+                book.getId(),
+                book.getTitle(),
+                book.getAuthor(),
+                book.getPrice(),
+                book.getCategoryId(),
+                book.getCoverUrl(),
+                book.getDescription(),
+                book.getStatus()
         );
-
-        for (Category child : children) {
-            if (categoryIds.add(child.getId())) {
-                collectChildren(child.getId(), categoryIds);
-            }
-        }
     }
+
 }

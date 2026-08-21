@@ -17,10 +17,7 @@
         <module>bookmall-auth</module>
         <module>bookmall-book</module>
         <module>bookmall-gateway</module>
-        <module>bookmall-cart</module>
         <module>bookmall-order</module>
-        <module>bookmall-inventory</module>
-        <module>bookmall-address</module>
     </modules>
 
     <properties>
@@ -36,6 +33,7 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- Spring Boot-->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
@@ -43,6 +41,7 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!-- Spring Cloud：统一管理微服务相关依赖版本，如 OpenFeign、Gateway、LoadBalancer 等 -->
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
@@ -50,6 +49,7 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!-- Spring Cloud Alibaba：统一管理 Nacos、Sentinel 等 Alibaba 微服务组件版本 -->
             <dependency>
                 <groupId>com.alibaba.cloud</groupId>
                 <artifactId>spring-cloud-alibaba-dependencies</artifactId>
@@ -57,31 +57,37 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!-- BookMall 公共模块：存放各微服务都能使用的公共代码 -->
             <dependency>
                 <groupId>com.bookmall</groupId>
                 <artifactId>bookmall-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <!-- MyBatis-Plus -->
             <dependency>
                 <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
+            <!-- MyBatis-Plus JSqlParser：MyBatis-Plus 的 SQL 解析相关功能 -->
             <dependency>
                 <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-jsqlparser</artifactId>
                 <version>${mybatis-plus-jsqlparser.version}</version>
             </dependency>
+            <!-- JJWT API：JWT 的核心 API，用于创建和解析 Token -->
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>
                 <artifactId>jjwt-api</artifactId>
                 <version>${jjwt.version}</version>
             </dependency>
+            <!-- JJWT 实现：JWT 的具体实现 -->
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>
                 <artifactId>jjwt-impl</artifactId>
                 <version>${jjwt.version}</version>
             </dependency>
+            <!-- JJWT Jackson：使用 Jackson 处理 JWT 中的 JSON 数据 -->
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>
                 <artifactId>jjwt-jackson</artifactId>
@@ -104,6 +110,7 @@
                     <version>3.13.0</version>
                     <configuration>
                         <release>${java.version}</release>
+                        <parameters>true</parameters>
                         <encoding>UTF-8</encoding>
                     </configuration>
                 </plugin>

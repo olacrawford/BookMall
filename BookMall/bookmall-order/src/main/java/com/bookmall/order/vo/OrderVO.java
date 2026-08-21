@@ -12,6 +12,5 @@ public class OrderVO {
     private Long userId;
     private BigDecimal totalAmount;
     private Integer status;
-    private Integer payStatus;
 
 }

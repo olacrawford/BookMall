@@ -204,9 +204,9 @@
 建议按这个顺序验证：
 
 1. 启动 `bookmall-book`
-2. 浏览器访问 `http://localhost:8082/books`，确认正常返回图书数据
-3. 浏览器访问 `http://localhost:8082/books/1`，确认正常返回图书详情
-4. 浏览器访问 `http://localhost:8082/books/search?keyword=Java`，确认搜索接口可正常使用
+2. 浏览器访问 `http://localhost:8070/books`，确认正常返回图书数据
+3. 浏览器访问 `http://localhost:8070/books/1`，确认正常返回图书详情
+4. 浏览器访问 `http://localhost:8070/books/search?keyword=Java`，确认搜索接口可正常使用
 5. 在浏览器中连续快速刷新，或者使用 Postman、Apifox、curl 在 1 秒内连续发起多次请求
 6. 当请求速率超过阈值时，检查是否返回：
 
