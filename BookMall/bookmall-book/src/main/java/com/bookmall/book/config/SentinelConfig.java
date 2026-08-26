@@ -26,16 +26,21 @@ public class SentinelConfig {
         // 存放多条限流规则的集合，可以配置多个资源的限流
         List<FlowRule> rules = new ArrayList<>();
 
-        // 创建一条流控规则对象
-        FlowRule rule = new FlowRule();
-        // 指定规则针对的资源名，和service层@SentinelResource(value = "listBooks")保持一致
-        rule.setResource("listBooks");
-        // 限流模式：FLOW_GRADE_QPS 按照每秒请求数限流（QPS）
-        rule.setGrade(RuleConstant.FLOW_GRADE_QPS);
-        rule.setCount(1); // QPS阈值：每秒最多允许1次请求；超过就触发限流，执行blockHandler兜底方法
-        rules.add(rule);
+        // 按查询接口拆分规则，正常访问不会误伤，压测时才触发限流
+        rules.add(createFlowRule("listBooks", 50));
+        rules.add(createFlowRule("pageBooks", 80));
+        rules.add(createFlowRule("getBookById", 120));
+        rules.add(createFlowRule("listCategories", 80));
 
         // 将规则加载到Sentinel管理器，规则正式生效
         FlowRuleManager.loadRules(rules);
+    }
+
+    private FlowRule createFlowRule(String resource, int count) {
+        FlowRule rule = new FlowRule();
+        rule.setResource(resource);
+        rule.setGrade(RuleConstant.FLOW_GRADE_QPS);
+        rule.setCount(count);
+        return rule;
     }
 }

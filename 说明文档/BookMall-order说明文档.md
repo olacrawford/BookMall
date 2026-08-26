@@ -53,8 +53,10 @@
 - RabbitMQ：`localhost:5672`，账号 `admin` / `123456`
 - 订单过期时间：`bookmall.order.expire-minutes`，默认 `30` 分钟
 - 超时任务频率：`bookmall.order.close-cron`，默认每 `30` 秒执行一次
+- 超时任务单轮处理量：`bookmall.order.close-batch-size`，默认 `500` 条
+- 默认 OpenFeign 连接超时 3 秒、读取超时 5 秒
 
-数据库连接和 RabbitMQ 配置在 [nacos-config/order.yaml](D:/workspace_idea/BookMall/nacos-config/order.yaml) 中维护，RabbitMQ 配置位于 `spring.rabbitmq`。
+数据库连接、RabbitMQ 和 OpenFeign 配置在 [nacos-config/order.yaml](D:/workspace_idea/BookMall/nacos-config/order.yaml) 中维护，RabbitMQ 配置位于 `spring.rabbitmq`。
 
 ## 4. 当前接口
 
@@ -116,7 +118,7 @@
 
 ### 4.9 定时任务：关闭超时订单
 
-`OrderTimeoutTask` 每 30 秒扫描一次，只关闭已超过 `expire_time` 且仍为待支付的订单；关闭成功后会释放该订单预占的库存。库存释放失败时订单状态回滚，下一轮任务会重试。
+`OrderTimeoutTask` 每 30 秒扫描一次，只关闭已超过 `expire_time` 且仍为待支付的订单，每轮最多处理 `close-batch-size` 条；关闭成功后会释放该订单预占的库存。库存释放失败时订单状态回滚，下一轮任务会重试。
 
 存量环境升级后会为历史订单补齐 `expire_time`，因此很久以前创建的待支付订单可能在下一次扫描时被自动取消；如果历史订单没有锁定库存，释放操作会按“已释放”处理，不会卡住任务。
 

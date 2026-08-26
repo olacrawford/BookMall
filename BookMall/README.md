@@ -107,7 +107,7 @@ BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目�
 
 脚本里还内置了 8 个示例分类（文学、计算机、历史等）。
 
-已有环境按顺序执行 `sql/updates/001_cart_address_stock.sql`、`002_stock_order.sql`、`003_payment.sql`、`004_order_expire_stock_confirm.sql` 完成增量升级。
+已有环境按顺序执行 `sql/updates/001_cart_address_stock.sql`、`002_stock_order.sql`、`003_payment.sql`、`004_order_expire_stock_confirm.sql`、`005_optimization.sql` 完成增量升级。
 
 数据库连接、Redis 地址等环境相关配置放在 **Nacos 配置中心**（dataId 为各服务名，如 `book.yaml`），数据库默认 `root` / `123456`。首次运行或 Nacos 数据丢失后，执行 `nacos-config/publish.sh` 重新发布配置。
 
@@ -134,26 +134,28 @@ npm run dev    # 默认 5173，/api 代理到网关 8080
 
 ### Redis 缓存
 
-连续两次请求图书详情，第一次查库、第二次命中缓存：
+图书列表、分页、详情和分类都使用 Redis 缓存，缓存统一 30 分钟过期：
 
 ```bash
-curl http://localhost:8080/api/books/1   # 第一次：查库，写入缓存
-curl http://localhost:8080/api/books/1   # 第二次：命中缓存
-docker exec -it redis redis-cli keys 'book*'   # 能看到 book::1 缓存键
+curl http://localhost:8080/api/books
+curl "http://localhost:8080/api/books/page?pageNum=1&pageSize=10"
+curl http://localhost:8080/api/books/1
+curl http://localhost:8080/api/books/categories
+docker exec -it redis redis-cli --scan --pattern 'book*'
+docker exec -it redis redis-cli --scan --pattern 'books*'
+docker exec -it redis redis-cli --scan --pattern 'category*'
 ```
 
-修改/删除图书后缓存会自动失效，下次查询会重新查库。
+修改/删除图书后，`book*` 和 `books*` 缓存会自动失效；下次查询重新查库。
 
 ### Sentinel 限流
 
-快速连续请求图书列表（`GET /books`，即 `listBooks`），超过每秒 1 次就触发限流：
+图书服务按接口配置 QPS 限流，超过阈值返回 429：
 
-```bash
-for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
-# 第一次正常，后面返回 429「图书列表请求过于频繁，请稍后再试」
-```
-
-> 注意：限流加在 `listBooks`（`GET /books`）上，而前端图书页用的是分页接口 `/books/page`，所以前端页面不会触发限流，演示时用上面的 curl 命令即可。
+- `listBooks`：50 QPS
+- `pageBooks`：80 QPS
+- `getBookById`：120 QPS
+- `listCategories`：80 QPS
 
 ## 访问方式
 
@@ -212,8 +214,8 @@ for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
 - `POST /books`、`PUT /books/{id}`、`DELETE /books/{id}`：增改删（软删除）
 - `GET /books/categories`：平铺分类列表
 - 分页使用 MyBatis-Plus `PaginationInnerInterceptor`
-- Redis 缓存：`getBookById` 结果缓存到 Redis，增删改时失效缓存
-- Sentinel 限流：`listBooks` 配置 QPS=1 的限流，超限返回友好提示
+- Redis 缓存：图书列表、分页、详情、分类缓存到 Redis，缓存统一 30 分钟过期，图书增删改时清理详情和列表缓存
+- Sentinel 限流：`listBooks` 50 QPS、`pageBooks` 80 QPS、`getBookById` 120 QPS、`listCategories` 80 QPS，超限返回友好提示
 
 ### `bookmall-order`
 
@@ -226,6 +228,7 @@ for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
 - `@RabbitListener` 消费 `bookmall.order.pay.success.queue`，重复消息按订单幂等处理
 - `OrderEventPublisher` 发布订单支付/库存释放事件给库存服务
 - 定时任务：扫描并关闭超过 `expire_time` 的待支付订单，释放预占库存
+- 超时任务每次最多处理 `bookmall.order.close-batch-size=500` 条，避免单轮扫描堆积任务
 - userId 从网关透传的 `X-User-Id` 头获取
 
 ### `bookmall-stock`
@@ -287,5 +290,6 @@ for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
 - 支付服务支付单生成、RabbitMQ 支付成功事件与订单异步更新
 - 订单超时未支付自动关单
 - 订单确认收货、核心状态单元测试
+- 图书 Redis 缓存、Sentinel 限流、购物车并发加购、OpenFeign 超时、订单查询复合索引优化
 - 前端登录/图书/购物车/订单主链路联通
 - 文档体系整理

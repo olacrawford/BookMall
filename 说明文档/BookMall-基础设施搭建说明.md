@@ -83,15 +83,18 @@ bash publish.sh
 
 当前 Redis 用于 `bookmall-book`：
 
-- Spring Cache 缓存图书详情
-- 新增、修改、删除图书时清理缓存
+- Spring Cache 缓存图书列表、分页、详情和分类
+- 缓存统一 30 分钟过期，查询结果为 `null` 时不写入缓存
+- 新增、修改、删除图书时清理 `book` 和 `books` 缓存
 
 ### 3.4 Sentinel
 
 当前 Sentinel 接在 `bookmall-book`：
 
-- 资源名：`listBooks`
-- QPS 阈值：每秒 1 次
+- `listBooks`：50 QPS
+- `pageBooks`：80 QPS
+- `getBookById`：120 QPS
+- `listCategories`：80 QPS
 - 超限返回 429
 
 Windows 下如果 Sentinel 无法写 `C:\logs\csp`，启动 `bookmall-book` 时指定项目内日志目录：
@@ -138,6 +141,7 @@ docker start rabbitmq
 - 订单服务还通过服务名 `cart` 调用 `GET /cart/selected`，读取购物车已选条目
 - 订单服务通过服务名 `stock` 调用 `POST /stock/deduct`，完成下单前的库存预占
 - 支付服务通过服务名 `order` 调用 `GET /orders/{id}`，完成支付前订单校验
+- `cart.yaml`、`order.yaml`、`payment.yaml` 配置默认连接超时 3 秒、读取超时 5 秒
 
 ## 4. 启动顺序
 

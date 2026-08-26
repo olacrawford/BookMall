@@ -104,7 +104,7 @@ CREATE TABLE t_order (
     expire_time DATETIME NOT NULL COMMENT '订单过期时间',
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     UNIQUE KEY uk_order_no (order_no),
-    KEY idx_user_id (user_id),
+    KEY idx_user_id_create_time (user_id, create_time),
     KEY idx_status_expire_time (status, expire_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单主表';
 

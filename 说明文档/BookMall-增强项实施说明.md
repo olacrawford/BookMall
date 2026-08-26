@@ -2,12 +2,15 @@
 
 ## 1. 当前已落地增强项
 
-当前已实现三项增强能力：
+当前已实现以下增强能力：
 
-- `bookmall-book` 图书详情使用 Spring Cache + Redis
-- `bookmall-book` 图书列表使用 Sentinel QPS 限流
+- `bookmall-book` 图书列表、分页、详情、分类使用 Spring Cache + Redis
+- `bookmall-book` 图书查询接口使用 Sentinel QPS 限流
 - `bookmall-payment` / `bookmall-order` 使用 RabbitMQ 做支付成功事件的最终一致性补偿
 - `bookmall-order` / `bookmall-stock` / `bookmall-payment` 补充核心服务单元测试
+- `bookmall-cart` 使用数据库唯一键原子更新，避免并发加购重复插入
+- `cart` / `order` / `payment` 配置 OpenFeign 默认连接和读取超时
+- `bookmall-order` 超时关单分批处理，`t_order` 使用 `(user_id, create_time)` 复合索引
 
 ## 2. Redis 缓存
 
@@ -16,30 +19,33 @@
 - [RedisConfig.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/config/RedisConfig.java) 提供基于 Redis 的 `CacheManager`
 - [BookApplication.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/BookApplication.java) 开启 `@EnableCaching`
 - [BookServiceImpl.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/service/impl/BookServiceImpl.java) 在 `getBookById()` 上使用 `@Cacheable(cacheNames = "book")`
-- 新增、修改、删除图书使用 `@CacheEvict(cacheNames = "book", allEntries = true)`
+- [CategoryServiceImpl.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/service/impl/CategoryServiceImpl.java) 在分类查询上使用 `@Cacheable(cacheNames = "category")`
+- 缓存统一 30 分钟过期，查询结果为 `null` 时不写入缓存
+- 新增、修改、删除图书使用 `@Caching` 清理 `book` 和 `books` 两个缓存空间
 
 ### 2.2 当前缓存范围
 
-- 缓存对象：图书详情
+- 缓存对象：图书详情、图书列表、图书分页、分类列表
 - Redis 缓存键：`book::<id>`
-- 不缓存图书列表
-- 不缓存分类数据
+- `books::...`
+- `category::...`
 
 ## 3. Sentinel 限流
 
 ### 3.1 实现方式
 
 - [SentinelConfig.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/config/SentinelConfig.java) 使用代码定义流控规则
-- [BookServiceImpl.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/service/impl/BookServiceImpl.java) 在 `listBooks()` 上使用 `@SentinelResource`
+- [BookServiceImpl.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/service/impl/BookServiceImpl.java) 在 `listBooks()`、`pageBooks()`、`getBookById()` 上使用 `@SentinelResource`
+- [CategoryServiceImpl.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/service/impl/CategoryServiceImpl.java) 在 `listCategories()` 上使用 `@SentinelResource`
 
 ### 3.2 当前规则
 
-- 资源名：`listBooks`
 - 流控模式：QPS
-- 阈值：每秒 1 次
-- 超限响应：`429 图书列表请求过于频繁，请稍后再试`
-
-当前只有 `GET /books` 被限流，没有为详情、分页或分类接口配置独立规则。
+- `listBooks`：50 QPS
+- `pageBooks`：80 QPS
+- `getBookById`：120 QPS
+- `listCategories`：80 QPS
+- 超限响应：各资源返回对应的 429 友好提示
 
 ## 4. RabbitMQ 最终一致性
 
@@ -70,19 +76,21 @@
 Redis 缓存验证：
 
 ```text
+GET http://localhost:8080/api/books
 GET http://localhost:8080/api/books/1
-GET http://localhost:8080/api/books/1
+GET "http://localhost:8080/api/books/page?pageNum=1&pageSize=10"
+GET http://localhost:8080/api/books/categories
 ```
 
-第二次请求命中 `book::1` 缓存。
+Redis 中可见 `book*`、`books*`、`category*` 缓存键。
 
 Sentinel 验证：
 
 ```bash
-for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
+for i in $(seq 1 100); do curl -s -o /dev/null "http://localhost:8080/api/books/page?pageNum=1&pageSize=10"; done
 ```
 
-连续请求超过每秒 1 次后返回 429。
+分页接口超过 80 QPS 后返回 429。
 
 ## 7. 当前状态
 

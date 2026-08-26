@@ -49,30 +49,18 @@ public class CartServiceImpl implements CartService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    // 新增购物车条目需要“查重 + 更新/插入”，两个步骤必须同时成功或同时回滚
+    // 校验图书后由数据库唯一键原子累加，写入和查询返回结果在同一个事务内
     public CartItemVO add(Long userId, CartItemCreateRequest request) {
         // 通过 Feign 调用图书服务，避免购物车服务直接信任前端传来的 bookId
         validateBook(request.getBookId());
 
-        CartItem existing = cartItemMapper.selectOne(new LambdaQueryWrapper<CartItem>()
+        // 由数据库唯一键原子累加数量和勾选状态，并发加购同一本书时不会重复插入
+        Integer selected = request.getSelected() == null ? null : (request.getSelected() ? 1 : 0);
+        cartItemMapper.insertOrUpdate(userId, request.getBookId(), request.getQuantity(), selected);
+
+        CartItem item = cartItemMapper.selectOne(new LambdaQueryWrapper<CartItem>()
                 .eq(CartItem::getUserId, userId)
                 .eq(CartItem::getBookId, request.getBookId()));
-
-        if (existing != null) {
-            // 同一用户同一本书再次加入时累加数量，并沿用原有的勾选状态
-            existing.setQuantity(existing.getQuantity() + request.getQuantity());
-            existing.setSelected(resolveSelected(request.getSelected(), existing.getSelected()));
-            cartItemMapper.updateById(existing);
-            return toVO(existing);
-        }
-
-        // 第一次加入这本书时创建新条目，未传 selected 默认勾选
-        CartItem item = new CartItem();
-        item.setUserId(userId);
-        item.setBookId(request.getBookId());
-        item.setQuantity(request.getQuantity());
-        item.setSelected(resolveSelected(request.getSelected(), 1));
-        cartItemMapper.insert(item);
         return toVO(item);
     }
 
@@ -119,14 +107,6 @@ public class CartServiceImpl implements CartService {
         if (result == null || !Integer.valueOf(200).equals(result.getCode()) || result.getData() == null) {
             throw new BusinessException(400, "图书不存在或已下架");
         }
-    }
-
-    // 前端没传 selected 时，新条目默认勾选，已有条目保持原状态
-    private int resolveSelected(Boolean requested, Integer current) {
-        if (requested != null) {
-            return requested ? 1 : 0;
-        }
-        return current == null ? 1 : current;
     }
 
     private CartItemVO toVO(CartItem item) {

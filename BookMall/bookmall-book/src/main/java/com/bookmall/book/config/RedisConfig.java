@@ -2,6 +2,8 @@ package com.bookmall.book.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.time.Duration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -25,6 +27,9 @@ public class RedisConfig {
     public RedisCacheManager cacheManager(RedisConnectionFactory factory) {
         // 获取默认缓存配置
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
+                // 设置统一过期时间，避免缓存永久占用 Redis
+                .entryTtl(Duration.ofMinutes(30))
+                .disableCachingNullValues()
                 // 设置value值使用Jackson JSON序列化器
                 .serializeValuesWith(RedisSerializationContext.SerializationPair
                         .fromSerializer(new GenericJackson2JsonRedisSerializer()));

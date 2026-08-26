@@ -43,7 +43,7 @@ mysql -h127.0.0.1 -uroot -p < sql/updates/001_cart_address_stock.sql
 
 - `stock` 减少、`locked_stock` 增加：预占库存
 - `stock` 恢复、`locked_stock` 减少：取消订单释放库存
-- `version` 随每次变更递增，为后续乐观锁或对账能力预留
+- `version` 随每次变更递增，作为变更计数，库存一致性由带条件的原子 `UPDATE` 保证
 
 ## 支付服务接入
 
@@ -82,4 +82,18 @@ mysql -h127.0.0.1 -uroot -p < sql/updates/003_payment.sql
 
 ```bash
 mysql -h127.0.0.1 -uroot -p < sql/updates/004_order_expire_stock_confirm.sql
+```
+
+## 查询与并发优化
+
+脚本：`sql/updates/005_optimization.sql`
+
+- 把 `t_order` 的 `idx_user_id` 调整为 `(user_id, create_time)` 复合索引，服务于订单列表按用户和创建时间降序查询
+
+该脚本会先删除旧索引再建新索引；对已有环境执行一次即可，新环境已包含在 `sql/sql.txt` 中。
+
+执行方式：
+
+```bash
+mysql -h127.0.0.1 -uroot -p < sql/updates/005_optimization.sql
 ```

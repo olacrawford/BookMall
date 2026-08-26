@@ -10,7 +10,7 @@
 - 订单下单前原子预占库存，避免并发超卖
 - 消费订单支付事件后确认库存，减少预占库存
 - 消费取消/超时释放事件后释放订单明细对应的预占库存
-- 使用 `stock`、`locked_stock`、`version` 字段维护库存状态
+- 使用 `stock`、`locked_stock`、`version` 字段维护库存状态与变更计数
 
 ## 2. 当前项目结构
 
@@ -103,7 +103,7 @@
 - `bookId`：图书 ID
 - `stock`：可售库存
 - `lockedStock`：已预占库存
-- `version`：乐观锁版本号
+- `version`：变更计数，每次库存更新递增，用于对账或后续扩展
 - `createTime`、`updateTime`
 
 ## 6. 业务逻辑
@@ -111,6 +111,7 @@
 - 预占库存使用带条件的原子 `UPDATE`：只有 `stock >= quantity` 时才扣减可售库存并增加锁定库存
 - 确认库存使用带条件的原子 `UPDATE`：只有 `locked_stock >= quantity` 时才减少锁定库存
 - 释放库存按实际 `locked_stock` 恢复；没有锁定库存时视为已释放，保证取消订单和超时关单可重试
+- 库存一致性由这些原子 `UPDATE` 条件保证，`version` 不是乐观锁，仅作为变更计数
 - `StockServiceImpl` 的预占、确认和释放都加 `@Transactional`，多商品操作失败时会在库存服务内回滚
 - 普通 CRUD 使用 MyBatis-Plus `BaseMapper`，预占/释放等自定义 SQL 放在 `resources/mapper/StockMapper.xml`
 

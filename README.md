@@ -75,6 +75,8 @@ Browser
 - Gateway 统一路由转发 + JWT 鉴权过滤器
 - OpenFeign 服务间调用
 - RabbitMQ 支付成功事件发布与消费
+- Redis 缓存图书列表/分页/详情/分类，Sentinel 接口限流
+- 购物车并发加购原子更新、OpenFeign 超时配置、订单查询复合索引
 - 统一返回体与全局异常处理
 
 ## 本地运行说明
@@ -95,7 +97,7 @@ Browser
 
 新环境初始化直接执行 [sql/sql.txt](sql/sql.txt) 即可，脚本已包含用户、图书、购物车、库存、订单、支付等全部 9 张表和默认库存。
 
-已有环境按顺序执行 `sql/updates/001_cart_address_stock.sql`、`002_stock_order.sql`、`003_payment.sql`、`004_order_expire_stock_confirm.sql` 完成增量升级。
+已有环境按顺序执行 `sql/updates/001_cart_address_stock.sql`、`002_stock_order.sql`、`003_payment.sql`、`004_order_expire_stock_confirm.sql`、`005_optimization.sql` 完成增量升级。
 
 ### 4. 数据库与配置
 

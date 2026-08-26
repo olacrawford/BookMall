@@ -1,10 +1,14 @@
 package com.bookmall.book.service.impl;
 
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.bookmall.book.entity.Category;
 import com.bookmall.book.mapper.CategoryMapper;
 import com.bookmall.book.service.CategoryService;
 import com.bookmall.book.vo.CategoryVO;
+import com.bookmall.common.exception.BusinessException;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,6 +24,8 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Cacheable(cacheNames = "category")
+    @SentinelResource(value = "listCategories", blockHandler = "listCategoriesBlocked")
     public List<CategoryVO> listCategories() {
         return categoryMapper.selectList(
                 new LambdaQueryWrapper<Category>()
@@ -32,5 +38,10 @@ public class CategoryServiceImpl implements CategoryService {
                         category.getSort()
                 ))
                 .collect(Collectors.toList());
+    }
+
+    // 限流触发时返回友好提示
+    public List<CategoryVO> listCategoriesBlocked(BlockException e) {
+        throw new BusinessException(429, "分类列表请求过于频繁，请稍后再试");
     }
 }

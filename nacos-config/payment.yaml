@@ -9,3 +9,10 @@ spring:
     port: 5672
     username: admin
     password: 123456
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 3000
+            read-timeout: 5000

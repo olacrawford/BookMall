@@ -5,6 +5,7 @@ import com.bookmall.order.entity.Order;
 import com.bookmall.order.mapper.OrderMapper;
 import com.bookmall.order.service.OrderService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -20,10 +21,14 @@ public class OrderTimeoutTask {
 
     private final OrderMapper orderMapper;
     private final OrderService orderService;
+    private final int batchSize;
 
-    public OrderTimeoutTask(OrderMapper orderMapper, OrderService orderService) {
+    public OrderTimeoutTask(OrderMapper orderMapper,
+                            OrderService orderService,
+                            @Value("${bookmall.order.close-batch-size:500}") int batchSize) {
         this.orderMapper = orderMapper;
         this.orderService = orderService;
+        this.batchSize = batchSize;
     }
 
     @Scheduled(cron = "${bookmall.order.close-cron:0/30 * * * * ?}")
@@ -32,7 +37,8 @@ public class OrderTimeoutTask {
                 .eq(Order::getStatus, 0)
                 .isNotNull(Order::getExpireTime)
                 .le(Order::getExpireTime, LocalDateTime.now())
-                .orderByAsc(Order::getExpireTime));
+                .orderByAsc(Order::getExpireTime)
+                .last("LIMIT " + batchSize));
 
         for (Order order : orders) {
             try {

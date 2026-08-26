@@ -11,8 +11,8 @@
 - 图书分页查询（支持书名关键字和分类筛选）
 - 图书新增、修改、删除
 - 分类列表查询
-- 图书详情 Redis Spring Cache 缓存
-- 图书列表 Sentinel 限流
+- 图书列表、分页、详情、分类 Redis 缓存
+- 图书查询接口 Sentinel 限流
 
 ## 2. 当前项目结构
 
@@ -85,20 +85,22 @@
 
 当前缓存使用 Spring Cache + Redis：
 
-- `getBookById()` 使用 `@Cacheable(cacheNames = "book")`
-- 新增、修改、删除图书时使用 `@CacheEvict(cacheNames = "book", allEntries = true)` 清理详情缓存
-- Redis 中的详情缓存键为 `book::<id>`
+- `getBookById()` 使用 `@Cacheable(cacheNames = "book")`，键为 `book::<id>`
+- `listBooks()` 和 `pageBooks()` 使用 `@Cacheable(cacheNames = "books")`，键为 `books::...`
+- `listCategories()` 使用 `@Cacheable(cacheNames = "category")`，键为 `category::...`
+- 所有缓存统一 30 分钟过期；查询结果为 `null` 时不写入缓存
+- 新增、修改、删除图书时使用 `@Caching` 清理 `book` 和 `books` 两个缓存空间
 
 ## 7. Sentinel 限流
 
-当前只对 `listBooks`（对应 `GET /books`）配置了 Sentinel 规则：
+通过 [SentinelConfig.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/config/SentinelConfig.java) 配置四条 QPS 规则：
 
-- 资源名：`listBooks`
-- 限流模式：QPS
-- 阈值：每秒 1 次
-- 超限响应：`429 图书列表请求过于频繁，请稍后再试`
+- `listBooks`（`GET /books`）：50 QPS
+- `pageBooks`（`GET /books/page`）：80 QPS
+- `getBookById`（`GET /books/{id}`）：120 QPS
+- `listCategories`（`GET /books/categories`）：80 QPS
 
-前端图书中心使用的是 `/books/page`，不会触发该限流。
+超过阈值时分别返回对应的 429 友好提示，正常业务访问不会误伤。
 
 ## 8. 验证方式
 
@@ -114,13 +116,13 @@ PUT http://localhost:8080/api/books/1
 DELETE http://localhost:8080/api/books/1
 ```
 
-图书列表限流验证：
+限流验证：
 
 ```bash
-for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
+for i in $(seq 1 80); do curl -s -o /dev/null -w "%{http_code}\n" "http://localhost:8080/api/books/page?pageNum=1&pageSize=10"; done
 ```
 
-第一次请求正常，连续请求超过每秒 1 次后会返回 429。
+分页接口并发超过 80 QPS 时会出现 `429 图书分页请求过于频繁，请稍后再试`。
 
 ## 9. 当前状态
 

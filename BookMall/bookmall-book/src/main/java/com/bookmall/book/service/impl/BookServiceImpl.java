@@ -15,6 +15,7 @@ import com.bookmall.common.exception.BusinessException;
 import com.bookmall.common.result.PageResult;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -36,6 +37,7 @@ public class BookServiceImpl implements BookService {
      * @return 图书VO集合
      */
     @Override
+    @Cacheable(cacheNames = "books")
     @SentinelResource(value = "listBooks", blockHandler = "listBooksBlocked")
     public List<BookVO> listBooks() {
         //只查询状态=1（上架）的图书，entity转为VO返回
@@ -49,6 +51,16 @@ public class BookServiceImpl implements BookService {
         throw new BusinessException(429, "图书列表请求过于频繁，请稍后再试");
     }
 
+    // 限流触发时返回友好提示
+    public BookDetailVO getBookByIdBlocked(BlockException e) {
+        throw new BusinessException(429, "图书详情请求过于频繁，请稍后再试");
+    }
+
+    // 限流触发时返回友好提示
+    public PageResult<BookVO> pageBooksBlocked(BlockException e) {
+        throw new BusinessException(429, "图书分页请求过于频繁，请稍后再试");
+    }
+
     /**
      * 根据id查询图书详情
      * @param id 图书id
@@ -56,6 +68,7 @@ public class BookServiceImpl implements BookService {
      */
     @Override
     @Cacheable(cacheNames = "book")
+    @SentinelResource(value = "getBookById", blockHandler = "getBookByIdBlocked")
     public BookDetailVO getBookById(Long id) {
         Book book = bookMapper.selectOne(
                 new LambdaQueryWrapper<Book>()
@@ -77,6 +90,8 @@ public class BookServiceImpl implements BookService {
      * @return 分页结果对象
      */
     @Override
+    @Cacheable(cacheNames = "books")
+    @SentinelResource(value = "pageBooks", blockHandler = "pageBooksBlocked")
     public PageResult<BookVO> pageBooks(Integer pageNum, Integer pageSize, String keyword, Long categoryId) {
         //页码、页大小容错处理，为空或小于1给默认值
         long currentPage = pageNum == null || pageNum < 1 ? 1 : pageNum;
@@ -109,7 +124,10 @@ public class BookServiceImpl implements BookService {
      * @return 新增完成的图书详情VO
      */
     @Override
-    @CacheEvict(cacheNames = "book", allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "book", allEntries = true),
+        @CacheEvict(cacheNames = "books", allEntries = true)
+    })
     public BookDetailVO createBook(BookCreateRequest request) {
         Book book = new Book();
         book.setTitle(request.getTitle());
@@ -133,7 +151,10 @@ public class BookServiceImpl implements BookService {
      * @return 修改后详情VO，图书不存在返回null
      */
     @Override
-    @CacheEvict(cacheNames = "book", allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "book", allEntries = true),
+        @CacheEvict(cacheNames = "books", allEntries = true)
+    })
     public BookDetailVO updateBook(Long id, BookUpdateRequest request) {
         Book book = bookMapper.selectById(id);
         if (book == null) {
@@ -159,7 +180,10 @@ public class BookServiceImpl implements BookService {
      * @return true删除成功，false图书不存在
      */
     @Override
-    @CacheEvict(cacheNames = "book", allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "book", allEntries = true),
+        @CacheEvict(cacheNames = "books", allEntries = true)
+    })
     public boolean deleteBook(Long id) {
         Book book = bookMapper.selectById(id);
         if (book == null) {

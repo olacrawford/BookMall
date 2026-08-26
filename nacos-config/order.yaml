@@ -9,8 +9,16 @@ spring:
     port: 5672
     username: admin
     password: 123456
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 3000
+            read-timeout: 5000
 
 bookmall:
   order:
     expire-minutes: 30
     close-cron: "0/30 * * * * ?"
+    close-batch-size: 500
