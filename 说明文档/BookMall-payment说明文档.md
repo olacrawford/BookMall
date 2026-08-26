@@ -114,7 +114,7 @@
 
 ## 9. 前端接入
 
-- [OrdersView.vue](D:/workspace_idea/BookMall/front/src/views/OrdersView.vue)：待支付订单显示“立即支付”
+- [OrdersView.vue](D:/workspace_idea/BookMall/front/src/views/OrdersView.vue)：待支付订单显示“立即支付”，已支付订单支持“确认收货”
 - [bookmall.js](D:/workspace_idea/BookMall/front/src/api/bookmall.js)：`paymentApi` 请求封装
 
 ## 10. 验证方式

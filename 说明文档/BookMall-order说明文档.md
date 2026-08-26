@@ -161,7 +161,7 @@
 - `GET /orders/{id}`：校验订单归属并返回订单快照
 - `PUT /orders/{id}/paid`：保留手工验证入口，正常支付链路不再通过它更新订单
 
-下单成功后，前端会清理已下单的购物车条目；地址仍由订单请求直接携带，尚未拆分为独立地址微服务。
+前端在图书下单和购物车结算时可以选择已保存收货地址自动带入；地址最终仍由订单请求直接携带，尚未拆分为独立地址微服务。下单成功后，前端会清理已下单的购物车条目。
 
 ## 7. RabbitMQ 异步补偿链路
 
@@ -184,6 +184,7 @@ GET http://localhost:8080/api/orders
 GET http://localhost:8080/api/orders/1
 PUT http://localhost:8080/api/orders/1/cancel
 PUT http://localhost:8080/api/orders/1/paid
+PUT http://localhost:8080/api/orders/1/complete
 ```
 
 除 `GET /orders/hello` 外，其他接口都需要在请求头携带：
