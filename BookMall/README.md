@@ -291,7 +291,7 @@ docker exec -it redis redis-cli --scan --pattern 'category*'
 - 库存服务查询、下单预占、支付确认、取消释放
 - 支付服务支付单生成、RabbitMQ 支付成功事件与订单异步更新
 - 订单超时未支付自动关单
-- 订单确认收货、核心状态单元测试
+- 订单确认收货、核心状态单元测试；Auth/Book/Cart/Gateway 登录、图书查询、加购、网关透传测试
 - 图书 Redis 缓存、Sentinel 限流、购物车并发加购、OpenFeign 超时、订单查询复合索引优化
 - 前端登录/图书/购物车/收货地址/订单主链路联通，订单支持支付、取消、确认收货
 - 文档体系整理

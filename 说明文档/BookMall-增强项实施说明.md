@@ -66,10 +66,14 @@
 
 ## 5. 核心服务单元测试
 
+- `bookmall-auth`：登录成功签发 Token、用户不存在、密码错误、注册重名
+- `bookmall-book`：图书列表、详情、分页查询
+- `bookmall-cart`：购物车加购原子更新、图书校验失败
+- `bookmall-gateway`：有效 Token 透传 `X-User-Id`、缺失/无效 Token 返回 401、公开接口放行
 - `bookmall-order`：确认收货幂等、支付幂等、取消/超时释放事件
 - `bookmall-stock`：库存预占失败、释放幂等、确认幂等
 - `bookmall-payment`：支付成功发布事件、MQ 发送失败回滚
-- 测试依赖使用 `spring-boot-starter-test`，可运行 `mvn -pl bookmall-order,bookmall-stock,bookmall-payment -am test`
+- 测试依赖使用 `spring-boot-starter-test`，可运行 `mvn -pl bookmall-auth,bookmall-book,bookmall-cart,bookmall-gateway,bookmall-order,bookmall-stock,bookmall-payment -am test`
 
 ## 6. 验证方式
 

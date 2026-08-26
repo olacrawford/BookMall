@@ -77,6 +77,7 @@ Browser
 - RabbitMQ 支付成功事件发布与消费
 - Redis 缓存图书列表/分页/详情/分类，Sentinel 接口限流
 - 购物车并发加购原子更新、OpenFeign 超时配置、订单查询复合索引
+- 单元测试覆盖 Auth 登录、Book 图书查询、Cart 加购、Gateway 鉴权透传
 - 统一返回体与全局异常处理
 
 ## 本地运行说明
