@@ -17,6 +17,7 @@ import com.bookmall.order.entity.Order;
 import com.bookmall.order.entity.OrderItem;
 import com.bookmall.order.mapper.OrderItemMapper;
 import com.bookmall.order.mapper.OrderMapper;
+import com.bookmall.order.mq.OrderEventPublisher;
 import com.bookmall.order.service.OrderService;
 import com.bookmall.order.vo.OrderDetailVO;
 import com.bookmall.order.vo.OrderVO;
@@ -44,6 +45,7 @@ public class OrderServiceImpl implements OrderService {
     private final BookClient bookClient;
     private final CartClient cartClient;
     private final StockClient stockClient;
+    private final OrderEventPublisher orderEventPublisher;
     private final int orderExpireMinutes;
 
     // 构造注入 mapper 和 Feign 客户端
@@ -52,12 +54,14 @@ public class OrderServiceImpl implements OrderService {
                             BookClient bookClient,
                             CartClient cartClient,
                             StockClient stockClient,
+                            OrderEventPublisher orderEventPublisher,
                             @Value("${bookmall.order.expire-minutes:30}") int orderExpireMinutes) {
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
         this.bookClient = bookClient;
         this.cartClient = cartClient;
         this.stockClient = stockClient;
+        this.orderEventPublisher = orderEventPublisher;
         this.orderExpireMinutes = orderExpireMinutes;
     }
 
@@ -83,7 +87,7 @@ public class OrderServiceImpl implements OrderService {
                     request.getReceiverName(), request.getReceiverPhone(), request.getReceiverAddress());
             insertOrderItem(order, book, request.getQuantity());
             return getOrderDetail(order.getId(), userId);
-        } catch (RuntimeException ex) {
+        } catch (Exception ex) {
             // 本地订单落库异常时补偿释放，避免库存被长期占用
             releaseStockQuietly(stockItems);
             throw ex;
@@ -183,17 +187,10 @@ public class OrderServiceImpl implements OrderService {
         requireSuccess(stockClient.deduct(request), 400, "库存不足，请稍后重试");
     }
 
-    private void releaseStock(List<StockOperationItem> items) {
-        // 取消订单或本地落库失败时释放远程库存
-        StockOperationRequest request = new StockOperationRequest();
-        request.setItems(items);
-        requireSuccess(stockClient.release(request), 500, "库存释放失败");
-    }
-
     private void releaseStockQuietly(List<StockOperationItem> items) {
         try {
-            releaseStock(items);
-        } catch (RuntimeException ex) {
+            orderEventPublisher.publishStockRelease(null, null, items);
+        } catch (Exception ex) {
             // 补偿释放只记录日志，不掩盖原始的订单异常
             log.warn("订单创建失败后释放库存异常", ex);
         }
@@ -310,7 +307,7 @@ public class OrderServiceImpl implements OrderService {
                 .toList();
 
         if (!stockItems.isEmpty()) {
-            releaseStock(stockItems);
+            publishStockReleaseOrThrow(id, userId, stockItems);
         }
         return true;
     }
@@ -331,8 +328,19 @@ public class OrderServiceImpl implements OrderService {
         if (updated == 0) {
             Order existing = orderMapper.selectById(id);
             // 已支付视为幂等成功，避免支付服务重复回调时误判为失败
-            return existing != null && existing.getUserId().equals(userId)
-                    && existing.getStatus() != null && existing.getStatus() == 1;
+            if (existing != null && existing.getUserId().equals(userId)
+                    && existing.getStatus() != null && existing.getStatus() == 1) {
+                List<OrderItem> items = orderItemMapper.selectList(
+                        new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, id));
+                List<StockOperationItem> stockItems = items.stream()
+                        .map(item -> new StockOperationItem(item.getBookId(), item.getQuantity()))
+                        .toList();
+                if (!stockItems.isEmpty()) {
+                    publishOrderPaidOrThrow(id, userId, stockItems);
+                }
+                return true;
+            }
+            return false;
         }
 
         List<OrderItem> items = orderItemMapper.selectList(
@@ -341,8 +349,7 @@ public class OrderServiceImpl implements OrderService {
                 .map(item -> new StockOperationItem(item.getBookId(), item.getQuantity()))
                 .toList();
         if (!stockItems.isEmpty()) {
-            // 支付成功后再确认库存，库存服务失败会回滚本次订单状态更新
-            confirmStock(stockItems);
+            publishOrderPaidOrThrow(id, userId, stockItems);
         }
         return true;
     }
@@ -370,15 +377,24 @@ public class OrderServiceImpl implements OrderService {
                 .map(item -> new StockOperationItem(item.getBookId(), item.getQuantity()))
                 .toList();
         if (!stockItems.isEmpty()) {
-            releaseStock(stockItems);
+            publishStockReleaseOrThrow(orderId, null, stockItems);
         }
         return true;
     }
 
-    private void confirmStock(List<StockOperationItem> items) {
-        // 支付成功后调用库存服务确认扣减，失败时由调用方事务回滚订单状态
-        StockOperationRequest request = new StockOperationRequest();
-        request.setItems(items);
-        requireSuccess(stockClient.confirm(request), 500, "库存确认失败");
+    private void publishOrderPaidOrThrow(Long orderId, Long userId, List<StockOperationItem> items) {
+        try {
+            orderEventPublisher.publishOrderPaid(orderId, userId, items);
+        } catch (Exception ex) {
+            throw new BusinessException(500, "订单支付事件发送失败，请稍后重试");
+        }
+    }
+
+    private void publishStockReleaseOrThrow(Long orderId, Long userId, List<StockOperationItem> items) {
+        try {
+            orderEventPublisher.publishStockRelease(orderId, userId, items);
+        } catch (Exception ex) {
+            throw new BusinessException(500, "库存释放事件发送失败，请稍后重试");
+        }
     }
 }

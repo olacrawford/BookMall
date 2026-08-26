@@ -12,7 +12,6 @@ import com.bookmall.payment.mapper.PaymentMapper;
 import com.bookmall.payment.mq.PaySuccessPublisher;
 import com.bookmall.payment.service.PaymentService;
 import com.bookmall.payment.vo.PaymentVO;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,9 +19,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * 支付业务：当前使用内部模拟支付，先落支付单，再把订单更新为已支付。
+ * 支付业务：当前使用内部模拟支付，先落支付单，再发布支付成功事件由订单服务异步更新订单。
  */
-@Slf4j
 @Service
 public class PaymentServiceImpl implements PaymentService {
 
@@ -46,7 +44,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         // 幂等处理：已存在支付单且已支付时直接返回，避免重复扣款
         if (payment != null && Integer.valueOf(1).equals(payment.getStatus())) {
-            markOrderPaid(order.getId(), userId);
+            publishPaySuccess(order, payment);
             return toVO(payment);
         }
 
@@ -60,9 +58,7 @@ public class PaymentServiceImpl implements PaymentService {
             paymentMapper.updateById(payment);
         }
 
-        // 支付单落库成功后再同步订单状态，失败时本地事务整体回滚
-        markOrderPaid(order.getId(), userId);
-        // 同步更新成功后发布事件，订单服务即使没收到消息也不影响本次支付结果
+        // 调用方事务内发布支付成功事件，发送失败会回滚支付单，避免“已支付但订单未更新”
         publishPaySuccess(order, payment);
         return toVO(payment);
     }
@@ -124,15 +120,6 @@ public class PaymentServiceImpl implements PaymentService {
         return payment;
     }
 
-    private void markOrderPaid(Long orderId, Long userId) {
-        // Feign 调用订单服务更新支付状态，非 200 时抛出异常触发本地回滚
-        Result<Void> result = orderClient.markPaid(orderId, userId);
-        if (result == null || !Integer.valueOf(200).equals(result.getCode())) {
-            String message = result != null && result.getMessage() != null ? result.getMessage() : "订单支付状态更新失败";
-            throw new BusinessException(500, message);
-        }
-    }
-
     private void publishPaySuccess(OrderSnapshot order, Payment payment) {
         try {
             PaySuccessMessage message = new PaySuccessMessage();
@@ -144,8 +131,7 @@ public class PaymentServiceImpl implements PaymentService {
             message.setPayTime(payment.getPayTime());
             paySuccessPublisher.publish(message);
         } catch (Exception ex) {
-            // 消息发送失败只记录日志，订单已由同步 Feign 更新，避免支付结果被回滚
-            log.warn("支付成功消息发送失败：orderId={}", order.getId(), ex);
+            throw new BusinessException(500, "支付确认消息发送失败，请稍后重试");
         }
     }
 

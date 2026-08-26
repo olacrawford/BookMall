@@ -31,7 +31,7 @@
 | `bookmall-cart` | 8083 | 购物车条目、OpenFeign 图书校验 |
 | `bookmall-stock` | 8090 | 库存查询、下单预占、取消释放 |
 | `bookmall-order` | 8050 | 直接/购物车下单、订单管理、OpenFeign |
-| `bookmall-payment` | 8051 | 支付单、内部模拟支付、订单状态更新 |
+| `bookmall-payment` | 8051 | 支付单、内部模拟支付、发布支付成功事件 |
 
 ## 3. 当前基础设施能力
 
@@ -102,7 +102,7 @@ mvn -o -s D:\workspace_idea\BookMall\.m2\settings.xml -f D:\workspace_idea\BookM
 
 ### 3.5 RabbitMQ
 
-当前 RabbitMQ 用于支付成功事件的最终一致性补偿：
+当前 RabbitMQ 用于支付和订单状态事件：
 
 - 交换机：`bookmall.pay.success.exchange`（Topic）
 - 队列：`bookmall.order.pay.success.queue`
@@ -110,7 +110,15 @@ mvn -o -s D:\workspace_idea\BookMall\.m2\settings.xml -f D:\workspace_idea\BookM
 - 发布端：`bookmall-payment`
 - 消费端：`bookmall-order`
 
-RabbitMQ 连接配置位于 `nacos-config/payment.yaml` 和 `nacos-config/order.yaml` 的 `spring.rabbitmq`。
+订单侧还会发布库存确认/释放事件：
+
+- 交换机：`bookmall.order.stock.exchange`（Topic）
+- 队列：`bookmall.stock.order.paid.queue`
+- 队列：`bookmall.stock.order.release.queue`
+- 生产端：`bookmall-order`
+- 消费端：`bookmall-stock`
+
+RabbitMQ 连接配置位于 `nacos-config/payment.yaml`、`nacos-config/order.yaml` 和 `nacos-config/stock.yaml` 的 `spring.rabbitmq`。
 
 启动 RabbitMQ：
 
@@ -128,8 +136,8 @@ docker start rabbitmq
 - 调用：`GET /books/{id}`
 - 分别返回订单模块、购物车模块自己的 `BookSnapshot`
 - 订单服务还通过服务名 `cart` 调用 `GET /cart/selected`，读取购物车已选条目
-- 订单服务通过服务名 `stock` 调用 `POST /stock/deduct`、`POST /stock/confirm` 和 `POST /stock/release`，完成预占、支付确认和取消/超时释放
-- 支付服务通过服务名 `order` 调用 `GET /orders/{id}` 和 `PUT /orders/{id}/paid`，完成支付状态流转
+- 订单服务通过服务名 `stock` 调用 `POST /stock/deduct`，完成下单前的库存预占
+- 支付服务通过服务名 `order` 调用 `GET /orders/{id}`，完成支付前订单校验
 
 ## 4. 启动顺序
 

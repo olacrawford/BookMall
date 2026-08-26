@@ -5,7 +5,6 @@ import com.bookmall.payment.client.dto.OrderSnapshot;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 
 @FeignClient(name = "order")
@@ -15,9 +14,4 @@ public interface OrderClient {
     @GetMapping("/orders/{id}")
     Result<OrderSnapshot> getOrderDetail(@PathVariable("id") Long id,
                                          @RequestHeader("X-User-Id") Long userId);
-
-    // 支付成功后把订单状态更新为已支付
-    @PutMapping("/orders/{id}/paid")
-    Result<Void> markPaid(@PathVariable("id") Long id,
-                          @RequestHeader("X-User-Id") Long userId);
 }

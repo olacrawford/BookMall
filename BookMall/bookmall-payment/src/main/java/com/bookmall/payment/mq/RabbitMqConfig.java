@@ -9,8 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * 支付服务声明支付成功交换机、队列和绑定。
- * 订单服务也会重复声明同名资源，RabbitMQ 声明本身是幂等的，可避免启动顺序问题。
+ * 支付服务声明支付成功事件交换机、队列和绑定。
  */
 @Configuration
 public class RabbitMqConfig {

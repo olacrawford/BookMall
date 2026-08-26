@@ -10,14 +10,15 @@
 - 通过 OpenFeign 调用图书服务，快照图书标题、价格
 - 通过 OpenFeign 读取购物车已选条目，一次创建多条订单明细
 - 下单前通过 `StockClient` 预占库存，本地落库失败时补偿释放
-- 支付成功后通过 `StockClient` 确认库存，把预占库存转成真实扣减
+- 通过 RabbitMQ 消费支付成功事件，把订单更新为已支付
+- 订单支付成功后再通过 RabbitMQ 发布订单支付事件，库存服务确认库存
 - 通过定时任务关闭超时未支付订单，并释放预占库存
-- 通过 RabbitMQ 消费支付成功事件，对订单状态和库存确认做幂等补偿
+- 取消订单和超时关单时发布库存释放事件，库存服务异步释放预占库存
 - 创建订单主表和订单明细
 - 查询当前用户订单列表
 - 查询订单详情（只能查看自己的订单）
 - 取消待支付订单（只能取消自己的订单），取消时释放预占库存
-- 提供已支付接口，由 `bookmall-payment` 支付成功后调用
+- 提供已支付接口，保留手工验证；正常链路由 RabbitMQ 支付成功事件触发
 
 ## 2. 当前项目结构
 
@@ -34,10 +35,10 @@
 - `entity`：`Order`、`OrderItem`
 - `dto`：`OrderCreateRequest`、`OrderFromCartRequest`
 - `vo`：`OrderVO`、`OrderDetailVO`
-- `client`：`BookClient`、`CartClient`、`StockClient`
+- `client`：`BookClient`、`CartClient`、`StockClient`（当前只用于下单预占）
 - `client.dto`：`BookSnapshot`、`CartItemSnapshot`、`StockOperationItem`、`StockOperationRequest`
 - `task`：`OrderTimeoutTask`
-- `mq`：`PaySuccessConsumer`、`RabbitMqConfig`
+- `mq`：`PaySuccessConsumer`、`OrderEventPublisher`、`RabbitMqConfig`
 
 ## 3. 配置说明
 
@@ -106,7 +107,7 @@
 
 ### 4.7 PUT /orders/{id}/paid
 
-支付服务同步 Feign 或 RabbitMQ 消费都会走 `markPaid`：把待支付订单更新为已支付，并确认库存；已支付订单重复调用按成功处理。
+订单服务消费 `PaySuccessMessage` 后调用 `markPaid`：把待支付订单更新为已支付，并发布订单支付事件由库存服务确认库存；已支付订单重复调用按成功处理。
 
 ### 4.8 定时任务：关闭超时订单
 
@@ -145,15 +146,13 @@
 
 - [StockClient.java](D:/workspace_idea/BookMall/BookMall/bookmall-order/src/main/java/com/bookmall/order/client/StockClient.java) 使用 OpenFeign
 - 服务名：`stock`
-- 调用接口：`POST /stock/deduct`、`POST /stock/release`
-- 下单时预占库存，取消订单或本地落库失败时释放库存
-- 调用接口：`POST /stock/confirm`
-- 支付成功后确认库存，库存服务会减少 `locked_stock`
+- 调用接口：`POST /stock/deduct`
+- 只在创建订单时同步预占库存，保证下单前能确认可售库存充足
 
 订单服务也向支付服务提供内部调用接口：
 
 - `GET /orders/{id}`：校验订单归属并返回订单快照
-- `PUT /orders/{id}/paid`：更新订单状态为已支付并确认库存
+- `PUT /orders/{id}/paid`：保留手工验证入口，正常支付链路不再通过它更新订单
 
 下单成功后，前端会清理已下单的购物车条目；地址仍由订单请求直接携带，尚未拆分为独立地址微服务。
 
@@ -163,7 +162,8 @@
 - 队列：`bookmall.order.pay.success.queue`
 - `PaySuccessConsumer` 使用 `@RabbitListener` 订阅，解析消息后调用 `markPaid`
 - `markPaid` 按订单状态做幂等：已支付或已取消的消息不会重复确认库存
-- 同步 Feign 与 RabbitMQ 消费共用同一 `markPaid`，不会产生双写冲突
+- 订单支付成功后，`OrderEventPublisher` 发布 `OrderStockEvent` 到 `bookmall.order.stock.exchange`
+- 库存服务消费确认或释放事件，异步处理 `locked_stock`
 
 ## 8. 验证方式
 

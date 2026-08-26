@@ -13,11 +13,4 @@ public interface StockClient {
     @PostMapping("/stock/deduct")
     Result<Void> deduct(@RequestBody StockOperationRequest request);
 
-    // 取消订单或本地落库失败时释放库存
-    @PostMapping("/stock/release")
-    Result<Void> release(@RequestBody StockOperationRequest request);
-
-    // 支付成功后确认库存，把预占库存转成真实扣减
-    @PostMapping("/stock/confirm")
-    Result<Void> confirm(@RequestBody StockOperationRequest request);
 }

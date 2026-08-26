@@ -76,7 +76,7 @@ public class OrderController {
         return Result.success("取消成功");
     }
 
-    // 支付服务支付成功后调用，把待支付订单更新为已支付
+    // 手工验证接口；正常支付链路通过 RabbitMQ 支付成功事件处理
     @PutMapping("/{id}/paid")
     public Result<String> markPaid(@RequestHeader("X-User-Id") Long userId,
                                    @PathVariable("id") Long id) {

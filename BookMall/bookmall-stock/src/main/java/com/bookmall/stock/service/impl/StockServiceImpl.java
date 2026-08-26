@@ -67,10 +67,17 @@ public class StockServiceImpl implements StockService {
         for (StockOperationItem item : items) {
             // 支付完成才允许确认；锁定库存不足时抛出异常，让订单事务回滚
             int affected = stockMapper.confirmStock(item.getBookId(), item.getQuantity());
-            if (affected == 0) {
+            if (affected == 0 && !alreadyConfirmed(item.getBookId())) {
                 throw new BusinessException(500, "库存确认失败：图书ID " + item.getBookId());
             }
         }
+    }
+
+    private boolean alreadyConfirmed(Long bookId) {
+        // 消息重复消费时锁定库存已经为 0，按已确认成功处理，避免重复执行报错
+        BookStock row = stockMapper.selectOne(new LambdaQueryWrapper<BookStock>()
+                .eq(BookStock::getBookId, bookId));
+        return row != null && row.getLockedStock() != null && row.getLockedStock() <= 0;
     }
 
     private StockVO toVO(BookStock row) {

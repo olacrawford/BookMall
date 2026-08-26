@@ -49,9 +49,13 @@
 - `bookmall-order` 的 `PaySuccessConsumer` 使用 `@RabbitListener` 订阅 `bookmall.order.pay.success.queue`
 - 消费端调用 `markPaid`，订单状态和库存确认按 `orderId` 幂等处理
 
-### 4.2 与同步 Feign 的关系
+订单消费 `PaySuccessMessage` 后调用 `markPaid`，并发布 `OrderStockEvent` 给库存服务：
 
-同步 Feign 是支付结果的即时降级路径，RabbitMQ 提供异步补偿。消息发送失败不会把已成功支付的本地事务回滚，消息重复或延迟消费不会重复确认库存。
+- 路由键 `order.paid`：库存服务确认库存
+- 路由键 `order.stock.release`：库存服务释放库存
+- 下单前的库存预占仍使用同步 Feign，因为创建订单时需要立即确认库存是否充足
+
+消息重复消费通过支付订单幂等和库存重复确认判断保证不会重复扣减库存。
 
 ## 5. 验证方式
 

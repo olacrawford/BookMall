@@ -8,8 +8,8 @@
 
 - 查询图书可售库存、锁定库存
 - 订单下单前原子预占库存，避免并发超卖
-- 支付成功后确认库存，减少预占库存
-- 订单取消时释放订单明细对应的预占库存
+- 消费订单支付事件后确认库存，减少预占库存
+- 消费取消/超时释放事件后释放订单明细对应的预占库存
 - 使用 `stock`、`locked_stock`、`version` 字段维护库存状态
 
 ## 2. 当前项目结构
@@ -27,6 +27,7 @@
 - `entity`：`BookStock`
 - `dto`：`StockOperationRequest`、`StockOperationItem`
 - `vo`：`StockVO`
+- `mq`：`OrderStockConsumer`、`RabbitMqConfig`
 
 ## 3. 配置说明
 
@@ -37,8 +38,9 @@
 - Nacos 注册中心：`localhost:8848`
 - Nacos Config：`stock.yaml`
 - MySQL：`localhost:3306/bookmall`
+- RabbitMQ：`localhost:5672`，账号 `admin` / `123456`
 
-数据库连接配置在 [nacos-config/stock.yaml](D:/workspace_idea/BookMall/nacos-config/stock.yaml) 中维护。
+数据库连接和 RabbitMQ 配置在 [nacos-config/stock.yaml](D:/workspace_idea/BookMall/nacos-config/stock.yaml) 中维护。
 
 ## 4. 当前接口
 
@@ -92,7 +94,7 @@
 
 支付成功后确认库存，请求体格式与 `/stock/deduct` 一致。
 
-预占库存时 `stock` 已经减少并计入 `locked_stock`；确认时只减少 `locked_stock`，不会再次扣减可售库存；取消订单时仍使用 `/stock/release` 恢复。
+预占库存时 `stock` 已经减少并计入 `locked_stock`；确认时只减少 `locked_stock`，不会再次扣减可售库存；手工验证时仍可调用 `/stock/release` 恢复，正常链路通过 RabbitMQ 事件触发。
 
 ## 5. 数据模型
 
@@ -114,13 +116,16 @@
 
 ## 7. 订单服务接入
 
-订单服务通过 `StockClient` 调用库存服务：
+订单服务通过 `StockClient` 调用库存服务完成下单预占：
 
 - 直接下单：先预占库存，再创建订单和订单明细
 - 购物车下单：校验图书和计算金额后，批量预占库存
-- 本地订单落库失败：补偿释放本次预占库存
-- 支付成功：订单服务更新状态后调用确认库存，释放锁定库存
-- 取消待支付订单：更新订单状态后释放库存
+
+支付成功和取消/超时释放不再通过 Feign 调用：
+
+- 订单支付成功发布 `OrderStockEvent`，路由键 `order.paid`
+- 订单取消或超时发布 `OrderStockEvent`，路由键 `order.stock.release`
+- 库存服务通过 `@RabbitListener` 消费后调用 `confirm` / `release`
 
 ## 8. 前端接入
 

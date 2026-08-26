@@ -3,15 +3,12 @@ package com.bookmall.payment.mq;
 import com.bookmall.common.mq.BookMallRabbitMq;
 import com.bookmall.common.mq.PaySuccessMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * 支付成功事件发布器：同步 Feign 更新订单作为降级，
- * RabbitMQ 消息作为最终一致性补偿通道。
+ * 支付成功事件发布器，订单服务消费后异步更新订单状态。
  */
-@Slf4j
 @Component
 public class PaySuccessPublisher {
 

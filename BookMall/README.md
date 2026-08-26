@@ -48,15 +48,15 @@ BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目�
 | `bookmall-cart` | 8083 | 购物车增加、查询、修改、删除、清空、结算 |
 | `bookmall-stock` | 8090 | 库存查询、下单预占、支付确认、取消释放 |
 | `bookmall-order` | 8050 | 订单（直接下单、购物车下单、列表、详情、取消、超时自动关单） |
-| `bookmall-payment` | 8051 | 支付单、内部模拟支付、订单状态更新与库存确认 |
+| `bookmall-payment` | 8051 | 支付单、内部模拟支付、发布支付成功事件触发订单异步更新与库存确认 |
 | `front` | 5173 | 前端，Vite 托管 |
 
 ## 项目亮点
 
 - 微服务职责划分清楚，当前已形成可运行的注册、发现、路由、鉴权和远程调用链路
 - 网关统一鉴权：在 Gateway 校验 JWT，并把 userId 透传给下游（`X-User-Id`），下游不再信任前端传的 userId
-- OpenFeign 服务间调用：购物车调图书服务校验图书，订单调图书/购物车/库存服务，支付服务调订单服务完成支付
-- RabbitMQ 支付成功事件：同步 Feign 负责即时更新，MQ 负责最终一致性补偿
+- OpenFeign 服务间调用：购物车调图书服务校验图书，订单调图书/购物车服务，支付服务调订单服务完成支付前校验
+- RabbitMQ 状态事件：支付成功后订单异步更新，并继续通过事件驱动库存确认/释放
 - 统一返回体 + 全局异常处理，接口成功失败格式一致
 - 订单越权校验：只能查看/取消自己的订单
 
@@ -221,8 +221,9 @@ for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
 - `POST /orders/from-cart`：购物车已选条目下单（Feign 调购物车、图书和库存服务 → 预占库存 → 创建多明细订单）
 - `GET /orders`：订单列表
 - `GET /orders/{id}`、`PUT /orders/{id}/cancel`：详情 / 取消（取消时释放库存，含越权校验）
-- `PUT /orders/{id}/paid`：支付服务调用，把待支付订单更新为已支付并确认库存
+- `PUT /orders/{id}/paid`：保留手工验证入口，正常支付链路由 RabbitMQ 消费触发
 - `@RabbitListener` 消费 `bookmall.order.pay.success.queue`，重复消息按订单幂等处理
+- `OrderEventPublisher` 发布订单支付/库存释放事件给库存服务
 - 定时任务：扫描并关闭超过 `expire_time` 的待支付订单，释放预占库存
 - userId 从网关透传的 `X-User-Id` 头获取
 
@@ -230,15 +231,15 @@ for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
 
 - `GET /stock/{bookId}`：查询可售库存与锁定库存
 - `POST /stock/deduct`：下单前原子预占库存，防止并发超卖
-- `POST /stock/release`：取消订单或补偿时释放预占库存
-- `POST /stock/confirm`：支付成功后把预占库存确认为真实扣减
+- `POST /stock/release`：保留手工接口，正常取消/超时由 RabbitMQ 事件触发
+- `POST /stock/confirm`：保留手工接口，正常支付由 RabbitMQ 事件触发
 - 使用 `t_book_stock` 的 `stock / locked_stock / version` 字段维护库存状态
 
 ### `bookmall-payment`
 
-- `POST /payment/pay`：内部模拟支付，校验订单后生成支付单，订单状态更新并确认库存
+- `POST /payment/pay`：内部模拟支付，校验订单后生成支付单并发布支付成功事件
 - `GET /payment/order/{orderId}`：查询订单对应的支付单
-- 支付前通过 Feign 调订单服务校验订单归属和待支付状态
+- 支付前通过 Feign 调订单服务校验订单归属和待支付状态，不再同步更新订单
 - 支付成功后发布 `bookmall.pay.success.exchange` / `pay.success` 消息
 - 使用 `t_payment` 保存支付单，当前 `payType=mock`
 
@@ -282,7 +283,7 @@ for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
 - 图书服务 CRUD + 分页 + 平铺分类
 - 购物车服务加入、查询、修改、删除、清空、结算下单
 - 库存服务查询、下单预占、支付确认、取消释放
-- 支付服务支付单生成、订单状态更新与库存确认
+- 支付服务支付单生成、RabbitMQ 支付成功事件与订单异步更新
 - 订单超时未支付自动关单
 - 前端登录/图书/购物车/订单主链路联通
 - 文档体系整理
