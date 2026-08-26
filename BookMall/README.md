@@ -222,6 +222,7 @@ for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
 - `GET /orders`：订单列表
 - `GET /orders/{id}`、`PUT /orders/{id}/cancel`：详情 / 取消（取消时释放库存，含越权校验）
 - `PUT /orders/{id}/paid`：保留手工验证入口，正常支付链路由 RabbitMQ 消费触发
+- `PUT /orders/{id}/complete`：确认收货，已支付订单更新为已完成，含越权校验和幂等处理
 - `@RabbitListener` 消费 `bookmall.order.pay.success.queue`，重复消息按订单幂等处理
 - `OrderEventPublisher` 发布订单支付/库存释放事件给库存服务
 - 定时任务：扫描并关闭超过 `expire_time` 的待支付订单，释放预占库存
@@ -285,5 +286,6 @@ for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
 - 库存服务查询、下单预占、支付确认、取消释放
 - 支付服务支付单生成、RabbitMQ 支付成功事件与订单异步更新
 - 订单超时未支付自动关单
+- 订单确认收货、核心状态单元测试
 - 前端登录/图书/购物车/订单主链路联通
 - 文档体系整理

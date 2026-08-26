@@ -7,6 +7,7 @@
 - `bookmall-book` 图书详情使用 Spring Cache + Redis
 - `bookmall-book` 图书列表使用 Sentinel QPS 限流
 - `bookmall-payment` / `bookmall-order` 使用 RabbitMQ 做支付成功事件的最终一致性补偿
+- `bookmall-order` / `bookmall-stock` / `bookmall-payment` 补充核心服务单元测试
 
 ## 2. Redis 缓存
 
@@ -57,7 +58,14 @@
 
 消息重复消费通过支付订单幂等和库存重复确认判断保证不会重复扣减库存。
 
-## 5. 验证方式
+## 5. 核心服务单元测试
+
+- `bookmall-order`：确认收货幂等、支付幂等、取消/超时释放事件
+- `bookmall-stock`：库存预占失败、释放幂等、确认幂等
+- `bookmall-payment`：支付成功发布事件、MQ 发送失败回滚
+- 测试依赖使用 `spring-boot-starter-test`，可运行 `mvn -pl bookmall-order,bookmall-stock,bookmall-payment -am test`
+
+## 6. 验证方式
 
 Redis 缓存验证：
 
@@ -76,6 +84,6 @@ for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
 
 连续请求超过每秒 1 次后返回 429。
 
-## 6. 当前状态
+## 7. 当前状态
 
 本文档只描述当前已实现并验证的增强能力。

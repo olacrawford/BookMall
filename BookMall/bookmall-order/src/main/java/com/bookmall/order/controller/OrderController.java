@@ -86,4 +86,15 @@ public class OrderController {
         }
         return Result.success("支付成功");
     }
+
+    // 确认收货：只允许当前用户把已支付订单标记为已完成
+    @PutMapping("/{id}/complete")
+    public Result<String> completeOrder(@RequestHeader("X-User-Id") Long userId,
+                                        @PathVariable("id") Long id) {
+        boolean completed = orderService.completeOrder(id, userId);
+        if (!completed) {
+            return Result.fail(404, "订单不存在或不可确认收货");
+        }
+        return Result.success("确认收货成功");
+    }
 }

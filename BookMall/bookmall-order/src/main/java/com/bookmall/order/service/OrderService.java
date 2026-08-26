@@ -57,6 +57,14 @@ public interface OrderService {
     boolean markPaid(Long id, Long userId);
 
     /**
+     * 确认收货：只允许当前用户把已支付订单更新为已完成
+     * @param id 订单id
+     * @param userId 当前用户id
+     * @return true更新成功；false订单不存在/不属于该用户/状态不允许
+     */
+    boolean completeOrder(Long id, Long userId);
+
+    /**
      * 定时任务关闭超时未支付订单并释放预占库存
      */
     boolean closeExpiredOrder(Long orderId);

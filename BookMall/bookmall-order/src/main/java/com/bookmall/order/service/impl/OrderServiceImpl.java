@@ -355,6 +355,28 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
+     * 确认收货：只允许当前用户把已支付订单更新为已完成。
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean completeOrder(Long id, Long userId) {
+        // 条件更新只允许已支付订单进入已完成，防止取消/超时状态被错误确认
+        int updated = orderMapper.update(null, new LambdaUpdateWrapper<Order>()
+                .eq(Order::getId, id)
+                .eq(Order::getUserId, userId)
+                .eq(Order::getStatus, 1)
+                .set(Order::getStatus, 3)
+                .set(Order::getUpdateTime, LocalDateTime.now()));
+        if (updated == 0) {
+            // 已完成视为幂等成功；其他状态或非本人订单返回失败
+            Order existing = orderMapper.selectById(id);
+            return existing != null && existing.getUserId().equals(userId)
+                    && existing.getStatus() != null && existing.getStatus() == 3;
+        }
+        return true;
+    }
+
+    /**
      * 关闭超时未支付订单，并释放订单明细对应的预占库存。
      */
     @Override
