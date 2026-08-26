@@ -6,7 +6,7 @@
 
 - 微服务拆分清晰：认证、图书、购物车、库存、支付、订单六个业务服务 + 网关、公共模块独立演进
 - 前后端分离：Vue 3 前端通过 Gateway 与各业务服务联通
-- 企业常见基础能力已接入：Nacos、Nacos Config、Gateway、OpenFeign、Redis、Sentinel
+- 企业常见基础能力已接入：Nacos、Nacos Config、Gateway、OpenFeign、Redis、Sentinel、RabbitMQ
 - 网关统一鉴权：JWT 校验 + 用户身份透传（X-User-Id）
 - 接口文档：Knife4j 自动生成在线文档
 - 核心链路可运行：注册、登录、图书浏览、分类查看、购物车结算下单、支付确认库存、订单超时自动取消
@@ -22,6 +22,7 @@
 | 接口文档 | Knife4j |
 | 网关 | Spring Cloud Gateway |
 | 服务调用 | OpenFeign |
+| 消息队列 | RabbitMQ |
 | 数据访问 | MyBatis-Plus |
 | 数据库 | MySQL 8.x |
 | 前端 | Vue 3, Vite, Vue Router, Axios |
@@ -46,7 +47,7 @@ Browser
   -> /api/**
   -> Gateway (8080)
   -> auth / book / cart / stock / payment / order
-  -> MySQL / Nacos
+  -> MySQL / Nacos / RabbitMQ
 ```
 
 ## 已完成功能
@@ -64,6 +65,7 @@ Browser
 - 购物车页面（加入、数量修改、勾选、删除、清空、结算下单）
 - 图书库存查询、下单预占、支付确认、取消订单释放
 - 支付单生成、内部模拟支付、订单状态变为已支付并确认库存
+- 支付成功事件通过 RabbitMQ 异步补偿，订单更新失败时仍可最终一致
 - 直接下单（选书 + 填收货信息）
 - 订单列表、详情、取消、超时自动取消（含越权校验）
 
@@ -72,6 +74,7 @@ Browser
 - Nacos 服务注册与发现
 - Gateway 统一路由转发 + JWT 鉴权过滤器
 - OpenFeign 服务间调用
+- RabbitMQ 支付成功事件发布与消费
 - 统一返回体与全局异常处理
 
 ## 本地运行说明
@@ -79,13 +82,14 @@ Browser
 ### 1. 基础环境
 
 - Windows + IDEA 启动 Java 服务
-- Docker 启动 MySQL、Nacos、Redis
+- Docker 启动 MySQL、Nacos、Redis、RabbitMQ
 
 ### 2. 启动基础设施
 
 - MySQL: `localhost:3306`
 - Nacos: `localhost:8848`
 - Redis: `localhost:6379`
+- RabbitMQ: `localhost:5672`（`admin` / `123456`）
 
 ### 3. 导入数据库
 

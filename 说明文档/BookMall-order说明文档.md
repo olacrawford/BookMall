@@ -12,6 +12,7 @@
 - 下单前通过 `StockClient` 预占库存，本地落库失败时补偿释放
 - 支付成功后通过 `StockClient` 确认库存，把预占库存转成真实扣减
 - 通过定时任务关闭超时未支付订单，并释放预占库存
+- 通过 RabbitMQ 消费支付成功事件，对订单状态和库存确认做幂等补偿
 - 创建订单主表和订单明细
 - 查询当前用户订单列表
 - 查询订单详情（只能查看自己的订单）
@@ -36,6 +37,7 @@
 - `client`：`BookClient`、`CartClient`、`StockClient`
 - `client.dto`：`BookSnapshot`、`CartItemSnapshot`、`StockOperationItem`、`StockOperationRequest`
 - `task`：`OrderTimeoutTask`
+- `mq`：`PaySuccessConsumer`、`RabbitMqConfig`
 
 ## 3. 配置说明
 
@@ -46,10 +48,11 @@
 - Nacos 注册中心：`localhost:8848`
 - Nacos Config：`order.yaml`
 - MySQL：`localhost:3306/bookmall`
+- RabbitMQ：`localhost:5672`，账号 `admin` / `123456`
 - 订单过期时间：`bookmall.order.expire-minutes`，默认 `30` 分钟
 - 超时任务频率：`bookmall.order.close-cron`，默认每 `30` 秒执行一次
 
-数据库连接和 JWT 配置在 [nacos-config/order.yaml](D:/workspace_idea/BookMall/nacos-config/order.yaml) 中维护。
+数据库连接和 RabbitMQ 配置在 [nacos-config/order.yaml](D:/workspace_idea/BookMall/nacos-config/order.yaml) 中维护，RabbitMQ 配置位于 `spring.rabbitmq`。
 
 ## 4. 当前接口
 
@@ -103,7 +106,7 @@
 
 ### 4.7 PUT /orders/{id}/paid
 
-支付服务支付成功后调用，把待支付订单更新为已支付；已支付订单重复调用按成功处理。
+支付服务同步 Feign 或 RabbitMQ 消费都会走 `markPaid`：把待支付订单更新为已支付，并确认库存；已支付订单重复调用按成功处理。
 
 ### 4.8 定时任务：关闭超时订单
 
@@ -154,7 +157,15 @@
 
 下单成功后，前端会清理已下单的购物车条目；地址仍由订单请求直接携带，尚未拆分为独立地址微服务。
 
-## 7. 验证方式
+## 7. RabbitMQ 异步补偿链路
+
+- 支付服务发布 `PaySuccessMessage` 到 `bookmall.pay.success.exchange`，路由键 `pay.success`
+- 队列：`bookmall.order.pay.success.queue`
+- `PaySuccessConsumer` 使用 `@RabbitListener` 订阅，解析消息后调用 `markPaid`
+- `markPaid` 按订单状态做幂等：已支付或已取消的消息不会重复确认库存
+- 同步 Feign 与 RabbitMQ 消费共用同一 `markPaid`，不会产生双写冲突
+
+## 8. 验证方式
 
 通过网关验证：
 
@@ -175,3 +186,9 @@ Authorization: Bearer xxxxx.yyyyy.zzzzz
 ```
 
 网关校验 JWT 后会写入 `X-User-Id`。
+
+RabbitMQ 验证：
+
+- 启动 `rabbitmq` 容器后启动订单服务，日志出现监听 `bookmall.order.pay.success.queue`
+- 支付成功后，RabbitMQ 管理台该队列应无持续堆积消息
+- 可手动向该队列发送一条合法 `PaySuccessMessage` JSON，验证订单会被幂等更新

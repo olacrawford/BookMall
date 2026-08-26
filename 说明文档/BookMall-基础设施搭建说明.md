@@ -16,6 +16,7 @@
 | MySQL | `localhost:3306` |
 | Nacos | `localhost:8848` |
 | Redis | `localhost:6379` |
+| RabbitMQ | `localhost:5672`（账号 `admin` / `123456`） |
 
 ## 2. 当前后端模块
 
@@ -99,7 +100,27 @@ Windows 下如果 Sentinel 无法写 `C:\logs\csp`，启动 `bookmall-book` 时�
 mvn -o -s D:\workspace_idea\BookMall\.m2\settings.xml -f D:\workspace_idea\BookMall\BookMall\pom.xml -pl bookmall-book spring-boot:run '-Dspring-boot.run.jvmArguments=-Dcsp.sentinel.log.dir=D:/workspace_idea/BookMall/logs/sentinel'
 ```
 
-### 3.5 OpenFeign
+### 3.5 RabbitMQ
+
+当前 RabbitMQ 用于支付成功事件的最终一致性补偿：
+
+- 交换机：`bookmall.pay.success.exchange`（Topic）
+- 队列：`bookmall.order.pay.success.queue`
+- 路由键：`pay.success`
+- 发布端：`bookmall-payment`
+- 消费端：`bookmall-order`
+
+RabbitMQ 连接配置位于 `nacos-config/payment.yaml` 和 `nacos-config/order.yaml` 的 `spring.rabbitmq`。
+
+启动 RabbitMQ：
+
+```bash
+docker start rabbitmq
+```
+
+支付服务和订单服务都会声明同名交换机、队列和绑定，RabbitMQ 声明是幂等的，不依赖两个服务的严格启动顺序。
+
+### 3.6 OpenFeign
 
 当前 `bookmall-order` 和 `bookmall-cart` 使用 OpenFeign：
 

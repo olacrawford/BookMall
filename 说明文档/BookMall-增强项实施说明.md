@@ -2,10 +2,11 @@
 
 ## 1. 当前已落地增强项
 
-当前只实现两项增强能力：
+当前已实现三项增强能力：
 
 - `bookmall-book` 图书详情使用 Spring Cache + Redis
 - `bookmall-book` 图书列表使用 Sentinel QPS 限流
+- `bookmall-payment` / `bookmall-order` 使用 RabbitMQ 做支付成功事件的最终一致性补偿
 
 ## 2. Redis 缓存
 
@@ -39,7 +40,20 @@
 
 当前只有 `GET /books` 被限流，没有为详情、分页或分类接口配置独立规则。
 
-## 4. 验证方式
+## 4. RabbitMQ 最终一致性
+
+### 4.1 实现链路
+
+- `PaymentServiceImpl` 支付成功后调用 `PaySuccessPublisher`
+- `PaySuccessPublisher` 使用 `RabbitTemplate` 把 `PaySuccessMessage` 发布到 `bookmall.pay.success.exchange`
+- `bookmall-order` 的 `PaySuccessConsumer` 使用 `@RabbitListener` 订阅 `bookmall.order.pay.success.queue`
+- 消费端调用 `markPaid`，订单状态和库存确认按 `orderId` 幂等处理
+
+### 4.2 与同步 Feign 的关系
+
+同步 Feign 是支付结果的即时降级路径，RabbitMQ 提供异步补偿。消息发送失败不会把已成功支付的本地事务回滚，消息重复或延迟消费不会重复确认库存。
+
+## 5. 验证方式
 
 Redis 缓存验证：
 
@@ -58,6 +72,6 @@ for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
 
 连续请求超过每秒 1 次后返回 429。
 
-## 5. 当前状态
+## 6. 当前状态
 
 本文档只描述当前已实现并验证的增强能力。

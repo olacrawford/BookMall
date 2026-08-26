@@ -28,6 +28,7 @@ BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目�
 | 接口文档 | Knife4j |
 | 网关 | Spring Cloud Gateway |
 | 远程调用 | OpenFeign |
+| 消息队列 | RabbitMQ |
 | 负载均衡 | Spring Cloud LoadBalancer |
 | ORM | MyBatis-Plus 3.5.14 |
 | 数据库 | MySQL 8.x |
@@ -55,6 +56,7 @@ BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目�
 - 微服务职责划分清楚，当前已形成可运行的注册、发现、路由、鉴权和远程调用链路
 - 网关统一鉴权：在 Gateway 校验 JWT，并把 userId 透传给下游（`X-User-Id`），下游不再信任前端传的 userId
 - OpenFeign 服务间调用：购物车调图书服务校验图书，订单调图书/购物车/库存服务，支付服务调订单服务完成支付
+- RabbitMQ 支付成功事件：同步 Feign 负责即时更新，MQ 负责最终一致性补偿
 - 统一返回体 + 全局异常处理，接口成功失败格式一致
 - 订单越权校验：只能查看/取消自己的订单
 
@@ -66,7 +68,7 @@ BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目�
   -> /api/**
   -> Gateway (8080)  —— 路由 + JWT 鉴权 + 跨域
   -> auth / book / cart / stock / payment / order
-  -> MySQL / Nacos
+  -> MySQL / Nacos / RabbitMQ
 ```
 
 鉴权链路：
@@ -87,6 +89,7 @@ BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目�
 - MySQL（`localhost:3306`）
 - Redis（`localhost:6379`）
 - Nacos（`localhost:8848`）
+- RabbitMQ（`localhost:5672`，账号 `admin` / `123456`）
 
 ### 2. 初始化数据库
 
@@ -110,7 +113,7 @@ BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目�
 
 ### 3. 启动顺序
 
-1. 启动 MySQL、Redis（`docker start redis`）、Nacos
+1. 启动 MySQL、Redis（`docker start redis`）、Nacos、RabbitMQ（`docker start rabbitmq`）
 2. 启动 `bookmall-auth`（8060）
 3. 启动 `bookmall-book`（8070）
 4. 启动 `bookmall-cart`（8083）
@@ -175,6 +178,7 @@ for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
 - Nacos 服务注册发现
 - Gateway 路由转发 + JWT 鉴权过滤器
 - OpenFeign 服务间调用
+- RabbitMQ 支付成功事件发布与消费
 - 统一 `Result` 返回体
 - 全局异常处理
 - JWT 登录态 + BCrypt 密码加密
@@ -218,6 +222,7 @@ for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
 - `GET /orders`：订单列表
 - `GET /orders/{id}`、`PUT /orders/{id}/cancel`：详情 / 取消（取消时释放库存，含越权校验）
 - `PUT /orders/{id}/paid`：支付服务调用，把待支付订单更新为已支付并确认库存
+- `@RabbitListener` 消费 `bookmall.order.pay.success.queue`，重复消息按订单幂等处理
 - 定时任务：扫描并关闭超过 `expire_time` 的待支付订单，释放预占库存
 - userId 从网关透传的 `X-User-Id` 头获取
 
@@ -234,6 +239,7 @@ for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
 - `POST /payment/pay`：内部模拟支付，校验订单后生成支付单，订单状态更新并确认库存
 - `GET /payment/order/{orderId}`：查询订单对应的支付单
 - 支付前通过 Feign 调订单服务校验订单归属和待支付状态
+- 支付成功后发布 `bookmall.pay.success.exchange` / `pay.success` 消息
 - 使用 `t_payment` 保存支付单，当前 `payType=mock`
 
 ### 配置中心（Nacos Config）

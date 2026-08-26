@@ -2,14 +2,17 @@ package com.bookmall.payment.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.bookmall.common.exception.BusinessException;
+import com.bookmall.common.mq.PaySuccessMessage;
 import com.bookmall.common.result.Result;
 import com.bookmall.payment.client.OrderClient;
 import com.bookmall.payment.client.dto.OrderSnapshot;
 import com.bookmall.payment.dto.PaymentRequest;
 import com.bookmall.payment.entity.Payment;
 import com.bookmall.payment.mapper.PaymentMapper;
+import com.bookmall.payment.mq.PaySuccessPublisher;
 import com.bookmall.payment.service.PaymentService;
 import com.bookmall.payment.vo.PaymentVO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,15 +22,19 @@ import java.util.UUID;
 /**
  * 支付业务：当前使用内部模拟支付，先落支付单，再把订单更新为已支付。
  */
+@Slf4j
 @Service
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentMapper paymentMapper;
     private final OrderClient orderClient;
+    private final PaySuccessPublisher paySuccessPublisher;
 
-    public PaymentServiceImpl(PaymentMapper paymentMapper, OrderClient orderClient) {
+    public PaymentServiceImpl(PaymentMapper paymentMapper, OrderClient orderClient,
+                              PaySuccessPublisher paySuccessPublisher) {
         this.paymentMapper = paymentMapper;
         this.orderClient = orderClient;
+        this.paySuccessPublisher = paySuccessPublisher;
     }
 
     @Override
@@ -55,6 +62,8 @@ public class PaymentServiceImpl implements PaymentService {
 
         // 支付单落库成功后再同步订单状态，失败时本地事务整体回滚
         markOrderPaid(order.getId(), userId);
+        // 同步更新成功后发布事件，订单服务即使没收到消息也不影响本次支付结果
+        publishPaySuccess(order, payment);
         return toVO(payment);
     }
 
@@ -121,6 +130,22 @@ public class PaymentServiceImpl implements PaymentService {
         if (result == null || !Integer.valueOf(200).equals(result.getCode())) {
             String message = result != null && result.getMessage() != null ? result.getMessage() : "订单支付状态更新失败";
             throw new BusinessException(500, message);
+        }
+    }
+
+    private void publishPaySuccess(OrderSnapshot order, Payment payment) {
+        try {
+            PaySuccessMessage message = new PaySuccessMessage();
+            message.setOrderId(order.getId());
+            message.setUserId(order.getUserId());
+            message.setOrderNo(order.getOrderNo());
+            message.setAmount(order.getTotalAmount());
+            message.setPaymentNo(payment.getPaymentNo());
+            message.setPayTime(payment.getPayTime());
+            paySuccessPublisher.publish(message);
+        } catch (Exception ex) {
+            // 消息发送失败只记录日志，订单已由同步 Feign 更新，避免支付结果被回滚
+            log.warn("支付成功消息发送失败：orderId={}", order.getId(), ex);
         }
     }
 
