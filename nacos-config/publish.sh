@@ -6,7 +6,7 @@
 # 或（Windows Git Bash / WSL）：
 #   ./publish.sh
 #
-# 说明：把当前目录下的 auth.yaml / book.yaml / cart.yaml / order.yaml / gateway.yaml
+# 说明：把当前目录下的 auth.yaml / book.yaml / cart.yaml / stock.yaml / order.yaml / payment.yaml / gateway.yaml
 #       发布到 Nacos（dataId 分别为 <服务名>.yaml，group 为 DEFAULT_GROUP）。
 #       依赖：curl + Nacos 已在运行。
 
@@ -19,7 +19,7 @@ cd "$(dirname "$0")" || exit 1
 echo "Nacos 地址：http://${NACOS_ADDR}"
 echo "----------------------------------------"
 
-for svc in auth book cart order gateway; do
+for svc in auth book cart stock order payment gateway; do
   file="${svc}.yaml"
   if [ ! -f "$file" ]; then
     echo "跳过：$file 不存在"

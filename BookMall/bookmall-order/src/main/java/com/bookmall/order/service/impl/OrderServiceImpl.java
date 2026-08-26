@@ -1,12 +1,16 @@
 package com.bookmall.order.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.bookmall.common.exception.BusinessException;
 import com.bookmall.common.result.Result;
 import com.bookmall.order.client.BookClient;
 import com.bookmall.order.client.CartClient;
+import com.bookmall.order.client.StockClient;
 import com.bookmall.order.client.dto.BookSnapshot;
 import com.bookmall.order.client.dto.CartItemSnapshot;
+import com.bookmall.order.client.dto.StockOperationItem;
+import com.bookmall.order.client.dto.StockOperationRequest;
 import com.bookmall.order.dto.OrderCreateRequest;
 import com.bookmall.order.dto.OrderFromCartRequest;
 import com.bookmall.order.entity.Order;
@@ -16,6 +20,8 @@ import com.bookmall.order.mapper.OrderMapper;
 import com.bookmall.order.service.OrderService;
 import com.bookmall.order.vo.OrderDetailVO;
 import com.bookmall.order.vo.OrderVO;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +35,7 @@ import java.util.stream.Collectors;
 /**
  * 订单业务实现
  */
+@Slf4j
 @Service
 public class OrderServiceImpl implements OrderService {
 
@@ -36,16 +43,22 @@ public class OrderServiceImpl implements OrderService {
     private final OrderItemMapper orderItemMapper;
     private final BookClient bookClient;
     private final CartClient cartClient;
+    private final StockClient stockClient;
+    private final int orderExpireMinutes;
 
     // 构造注入 mapper 和 Feign 客户端
     public OrderServiceImpl(OrderMapper orderMapper,
                             OrderItemMapper orderItemMapper,
                             BookClient bookClient,
-                            CartClient cartClient) {
+                            CartClient cartClient,
+                            StockClient stockClient,
+                            @Value("${bookmall.order.expire-minutes:30}") int orderExpireMinutes) {
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
         this.bookClient = bookClient;
         this.cartClient = cartClient;
+        this.stockClient = stockClient;
+        this.orderExpireMinutes = orderExpireMinutes;
     }
 
     /**
@@ -60,11 +73,21 @@ public class OrderServiceImpl implements OrderService {
             return null;
         }
 
-        BigDecimal totalAmount = book.getPrice().multiply(BigDecimal.valueOf(request.getQuantity()));
-        Order order = insertOrderHead(userId, totalAmount,
-                request.getReceiverName(), request.getReceiverPhone(), request.getReceiverAddress());
-        insertOrderItem(order, book, request.getQuantity());
-        return getOrderDetail(order.getId(), userId);
+        List<StockOperationItem> stockItems = List.of(
+                new StockOperationItem(request.getBookId(), request.getQuantity()));
+        // 先预占库存，再创建本地订单，保证下单时有可售库存
+        reserveStock(stockItems);
+        try {
+            BigDecimal totalAmount = book.getPrice().multiply(BigDecimal.valueOf(request.getQuantity()));
+            Order order = insertOrderHead(userId, totalAmount,
+                    request.getReceiverName(), request.getReceiverPhone(), request.getReceiverAddress());
+            insertOrderItem(order, book, request.getQuantity());
+            return getOrderDetail(order.getId(), userId);
+        } catch (RuntimeException ex) {
+            // 本地订单落库异常时补偿释放，避免库存被长期占用
+            releaseStockQuietly(stockItems);
+            throw ex;
+        }
     }
 
     /**
@@ -92,18 +115,28 @@ public class OrderServiceImpl implements OrderService {
             totalAmount = totalAmount.add(book.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
         }
 
-        Order order = insertOrderHead(userId, totalAmount,
-                request.getReceiverName(), request.getReceiverPhone(), request.getReceiverAddress());
-        for (int i = 0; i < books.size(); i++) {
-            insertOrderItem(order, books.get(i), quantities.get(i));
+        List<StockOperationItem> stockItems = buildStockItems(books, quantities);
+        // 一次预占所有商品，库存服务内部会整体回滚
+        reserveStock(stockItems);
+        try {
+            Order order = insertOrderHead(userId, totalAmount,
+                    request.getReceiverName(), request.getReceiverPhone(), request.getReceiverAddress());
+            for (int i = 0; i < books.size(); i++) {
+                insertOrderItem(order, books.get(i), quantities.get(i));
+            }
+            return getOrderDetail(order.getId(), userId);
+        } catch (RuntimeException ex) {
+            // 本地订单落库异常时补偿释放，避免库存被长期占用
+            releaseStockQuietly(stockItems);
+            throw ex;
         }
-        return getOrderDetail(order.getId(), userId);
     }
 
     private Order insertOrderHead(Long userId, BigDecimal totalAmount,
                                   String receiverName, String receiverPhone, String receiverAddress) {
         // 订单号：OD + 时间戳 + UUID 前6位，保证唯一
         String orderNo = "OD" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 6);
+        LocalDateTime now = LocalDateTime.now();
 
         Order order = new Order();
         order.setOrderNo(orderNo);
@@ -113,8 +146,10 @@ public class OrderServiceImpl implements OrderService {
         order.setReceiverName(receiverName);
         order.setReceiverPhone(receiverPhone);
         order.setReceiverAddress(receiverAddress);
-        order.setCreateTime(LocalDateTime.now());
-        order.setUpdateTime(LocalDateTime.now());
+        order.setCreateTime(now);
+        // 超时未支付订单由定时任务自动取消，过期时间按配置向后计算
+        order.setExpireTime(now.plusMinutes(orderExpireMinutes));
+        order.setUpdateTime(now);
         orderMapper.insert(order);
         return order;
     }
@@ -130,6 +165,46 @@ public class OrderServiceImpl implements OrderService {
         orderItem.setSubtotal(subtotal);
         orderItem.setCreateTime(LocalDateTime.now());
         orderItemMapper.insert(orderItem);
+    }
+
+    private List<StockOperationItem> buildStockItems(List<BookSnapshot> books, List<Integer> quantities) {
+        // 把订单明细转换成库存服务需要的入参
+        List<StockOperationItem> items = new ArrayList<>();
+        for (int i = 0; i < books.size(); i++) {
+            items.add(new StockOperationItem(books.get(i).getId(), quantities.get(i)));
+        }
+        return items;
+    }
+
+    private void reserveStock(List<StockOperationItem> items) {
+        // 远程预占库存，失败时转为本地业务异常
+        StockOperationRequest request = new StockOperationRequest();
+        request.setItems(items);
+        requireSuccess(stockClient.deduct(request), 400, "库存不足，请稍后重试");
+    }
+
+    private void releaseStock(List<StockOperationItem> items) {
+        // 取消订单或本地落库失败时释放远程库存
+        StockOperationRequest request = new StockOperationRequest();
+        request.setItems(items);
+        requireSuccess(stockClient.release(request), 500, "库存释放失败");
+    }
+
+    private void releaseStockQuietly(List<StockOperationItem> items) {
+        try {
+            releaseStock(items);
+        } catch (RuntimeException ex) {
+            // 补偿释放只记录日志，不掩盖原始的订单异常
+            log.warn("订单创建失败后释放库存异常", ex);
+        }
+    }
+
+    private void requireSuccess(Result<?> result, Integer code, String fallback) {
+        // 远程 Result 非 200 时统一转成业务异常
+        if (!isSuccess(result)) {
+            String message = result != null && result.getMessage() != null ? result.getMessage() : fallback;
+            throw new BusinessException(code, message);
+        }
     }
 
     // 判断远程调用是否成功（code == 200）
@@ -161,6 +236,7 @@ public class OrderServiceImpl implements OrderService {
                     vo.setUserId(order.getUserId());
                     vo.setTotalAmount(order.getTotalAmount());
                     vo.setStatus(order.getStatus());
+                    vo.setExpireTime(order.getExpireTime());
                     return vo;
                 })
                 .collect(Collectors.toList());
@@ -188,6 +264,7 @@ public class OrderServiceImpl implements OrderService {
         vo.setUserId(order.getUserId());
         vo.setTotalAmount(order.getTotalAmount());
         vo.setStatus(order.getStatus());
+        vo.setExpireTime(order.getExpireTime());
         vo.setReceiverName(order.getReceiverName());
         vo.setReceiverPhone(order.getReceiverPhone());
         vo.setReceiverAddress(order.getReceiverAddress());
@@ -214,17 +291,94 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean cancelOrder(Long id, Long userId) {
-        Order order = orderMapper.selectById(id);
-        if (order == null || !order.getUserId().equals(userId)) {
-            return false;
-        }
-        if (order.getStatus() == null || order.getStatus() != 0) {
+        // 条件更新保证只有“属于该用户且仍待支付”的订单能被取消，避免和支付/超时任务并发重复释放
+        int updated = orderMapper.update(null, new LambdaUpdateWrapper<Order>()
+                .eq(Order::getId, id)
+                .eq(Order::getUserId, userId)
+                .eq(Order::getStatus, 0)
+                .set(Order::getStatus, 2)
+                .set(Order::getUpdateTime, LocalDateTime.now()));
+        if (updated == 0) {
             return false;
         }
 
-        order.setStatus(2); // 2 已取消
-        order.setUpdateTime(LocalDateTime.now());
-        orderMapper.updateById(order);
+        List<OrderItem> items = orderItemMapper.selectList(
+                new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, id));
+        // 取消订单时按订单明细释放此前预占的库存
+        List<StockOperationItem> stockItems = items.stream()
+                .map(item -> new StockOperationItem(item.getBookId(), item.getQuantity()))
+                .toList();
+
+        if (!stockItems.isEmpty()) {
+            releaseStock(stockItems);
+        }
         return true;
+    }
+
+    /**
+     * 标记订单已支付：支付服务完成内部模拟支付后调用。
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean markPaid(Long id, Long userId) {
+        // 条件更新只允许待支付订单进入已支付，防止取消/超时任务同时更新
+        int updated = orderMapper.update(null, new LambdaUpdateWrapper<Order>()
+                .eq(Order::getId, id)
+                .eq(Order::getUserId, userId)
+                .eq(Order::getStatus, 0)
+                .set(Order::getStatus, 1)
+                .set(Order::getUpdateTime, LocalDateTime.now()));
+        if (updated == 0) {
+            Order existing = orderMapper.selectById(id);
+            // 已支付视为幂等成功，避免支付服务重复回调时误判为失败
+            return existing != null && existing.getUserId().equals(userId)
+                    && existing.getStatus() != null && existing.getStatus() == 1;
+        }
+
+        List<OrderItem> items = orderItemMapper.selectList(
+                new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, id));
+        List<StockOperationItem> stockItems = items.stream()
+                .map(item -> new StockOperationItem(item.getBookId(), item.getQuantity()))
+                .toList();
+        if (!stockItems.isEmpty()) {
+            // 支付成功后再确认库存，库存服务失败会回滚本次订单状态更新
+            confirmStock(stockItems);
+        }
+        return true;
+    }
+
+    /**
+     * 关闭超时未支付订单，并释放订单明细对应的预占库存。
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean closeExpiredOrder(Long orderId) {
+        // 只更新已过期的待支付订单；释放库存失败时事务回滚，下轮定时任务会重试
+        int updated = orderMapper.update(null, new LambdaUpdateWrapper<Order>()
+                .eq(Order::getId, orderId)
+                .eq(Order::getStatus, 0)
+                .le(Order::getExpireTime, LocalDateTime.now())
+                .set(Order::getStatus, 2)
+                .set(Order::getUpdateTime, LocalDateTime.now()));
+        if (updated == 0) {
+            return false;
+        }
+
+        List<OrderItem> items = orderItemMapper.selectList(
+                new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, orderId));
+        List<StockOperationItem> stockItems = items.stream()
+                .map(item -> new StockOperationItem(item.getBookId(), item.getQuantity()))
+                .toList();
+        if (!stockItems.isEmpty()) {
+            releaseStock(stockItems);
+        }
+        return true;
+    }
+
+    private void confirmStock(List<StockOperationItem> items) {
+        // 支付成功后调用库存服务确认扣减，失败时由调用方事务回滚订单状态
+        StockOperationRequest request = new StockOperationRequest();
+        request.setItems(items);
+        requireSuccess(stockClient.confirm(request), 500, "库存确认失败");
     }
 }

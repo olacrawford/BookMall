@@ -21,7 +21,7 @@
         <span>共 {{ cartItems.length }} 种商品</span>
         <span>已选 {{ selectedCount }} 件</span>
         <strong>合计 ￥{{ selectedTotal.toFixed(2) }}</strong>
-        <button class="primary" type="button" :disabled="!selectedItems.length" @click="openCheckout">去结算</button>
+        <button class="primary" type="button" :disabled="!selectedItems.length || hasStockIssue" @click="openCheckout">去结算</button>
       </div>
 
       <div v-if="cartItems.length" class="list-stack">
@@ -35,6 +35,7 @@
           <div class="cart-info">
             <strong>{{ bookOf(item)?.title || ('图书 #' + item.bookId) }}</strong>
             <p class="muted">{{ bookOf(item)?.author || '图书商品' }}</p>
+            <p v-if="stockWarning(item)" class="stock-warning">库存不足，可售 {{ availableStock(item) }}</p>
           </div>
 
           <span class="cart-price">￥{{ bookOf(item)?.price ?? 0 }}</span>
@@ -92,11 +93,12 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { bookApi, cartApi, orderApi } from '../api/bookmall'
+import { bookApi, cartApi, orderApi, stockApi } from '../api/bookmall'
 import { getCurrentUser } from '../utils/session'
 
 const cartItems = ref([])
 const booksById = ref({})
+const stocksById = ref({})
 const error = ref('')
 const notice = ref('')
 const loading = ref(false)
@@ -112,6 +114,7 @@ const selectedTotal = computed(() => {
     return sum + price * item.quantity
   }, 0)
 })
+const hasStockIssue = computed(() => selectedItems.value.some((item) => stockWarning(item)))
 
 function bookOf(item) {
   return booksById.value[item.bookId]
@@ -139,6 +142,7 @@ async function loadCart() {
     const data = await cartApi.list()
     cartItems.value = Array.isArray(data) ? data : []
     await loadBooks()
+    await loadStocks()
   } catch (e) {
     error.value = e.message || '购物车加载失败'
   } finally {
@@ -162,6 +166,31 @@ async function loadBooks() {
   }))
 }
 
+async function loadStocks() {
+  const ids = [...new Set(cartItems.value.map((item) => item.bookId))]
+  const results = await Promise.allSettled(ids.map((id) => stockApi.detail(id)))
+  const next = {}
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      next[ids[index]] = result.value
+    }
+  })
+  stocksById.value = next
+}
+
+function stockOf(item) {
+  return stocksById.value[item.bookId]
+}
+
+function availableStock(item) {
+  return Number(stockOf(item)?.availableStock ?? 0)
+}
+
+function stockWarning(item) {
+  const stock = stockOf(item)
+  return stock != null && item.quantity > availableStock(item)
+}
+
 async function toggleSelected(item) {
   const next = item.selected === 1 ? 0 : 1
   try {
@@ -179,6 +208,10 @@ async function toggleSelected(item) {
 async function changeQuantity(item, delta) {
   const next = item.quantity + delta
   if (next < 1) return
+  if (stockOf(item) && next > availableStock(item)) {
+    error.value = '库存不足，无法继续增加数量'
+    return
+  }
   try {
     const updated = await cartApi.update(item.id, {
       quantity: next,
@@ -239,6 +272,10 @@ async function submitCheckout() {
   }
   if (!checkoutForm.receiverName.trim() || !checkoutForm.receiverPhone.trim() || !checkoutForm.receiverAddress.trim()) {
     error.value = '请填写完整的收货信息'
+    return
+  }
+  if (hasStockIssue.value) {
+    error.value = '所选商品库存不足，请先调整数量'
     return
   }
 
@@ -322,6 +359,13 @@ onMounted(loadCart)
 .cart-info strong,
 .cart-info p {
   overflow-wrap: anywhere;
+}
+
+.stock-warning {
+  margin-top: 0.25rem;
+  color: #b5475a;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .cart-price,

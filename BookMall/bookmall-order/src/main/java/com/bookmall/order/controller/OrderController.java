@@ -75,4 +75,15 @@ public class OrderController {
         }
         return Result.success("取消成功");
     }
+
+    // 支付服务支付成功后调用，把待支付订单更新为已支付
+    @PutMapping("/{id}/paid")
+    public Result<String> markPaid(@RequestHeader("X-User-Id") Long userId,
+                                   @PathVariable("id") Long id) {
+        boolean paid = orderService.markPaid(id, userId);
+        if (!paid) {
+            return Result.fail(404, "订单不存在");
+        }
+        return Result.success("支付成功");
+    }
 }

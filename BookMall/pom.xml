@@ -17,8 +17,10 @@
         <module>bookmall-auth</module>
         <module>bookmall-book</module>
         <module>bookmall-cart</module>
+        <module>bookmall-stock</module>
         <module>bookmall-gateway</module>
         <module>bookmall-order</module>
+        <module>bookmall-payment</module>
     </modules>
 
     <properties>

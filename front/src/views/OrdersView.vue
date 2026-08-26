@@ -20,7 +20,8 @@
           </div>
           <div class="row">
             <button class="ghost" type="button" @click="loadDetail(order.id)">详情</button>
-            <button class="ghost" type="button" @click="cancelOrder(order.id)">取消订单</button>
+            <button v-if="order.status === 0" class="primary" type="button" @click="payOrder(order.id)">立即支付</button>
+            <button v-if="order.status === 0" class="ghost" type="button" @click="cancelOrder(order.id)">取消订单</button>
           </div>
         </article>
       </div>
@@ -44,7 +45,7 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
-import { orderApi } from '../api/bookmall'
+import { orderApi, paymentApi } from '../api/bookmall'
 import { getCurrentUser } from '../utils/session'
 
 const orders = ref([])
@@ -94,6 +95,16 @@ async function cancelOrder(id) {
     await loadOrders()
   } catch (e) {
     error.value = e.message || '取消订单失败'
+  }
+}
+
+async function payOrder(id) {
+  try {
+    await paymentApi.pay(id)
+    detail.value = null
+    await loadOrders()
+  } catch (e) {
+    error.value = e.message || '支付失败'
   }
 }
 

@@ -9,10 +9,14 @@
 - 根据 `X-User-Id` 创建订单，不信任前端传入的用户 ID
 - 通过 OpenFeign 调用图书服务，快照图书标题、价格
 - 通过 OpenFeign 读取购物车已选条目，一次创建多条订单明细
+- 下单前通过 `StockClient` 预占库存，本地落库失败时补偿释放
+- 支付成功后通过 `StockClient` 确认库存，把预占库存转成真实扣减
+- 通过定时任务关闭超时未支付订单，并释放预占库存
 - 创建订单主表和订单明细
 - 查询当前用户订单列表
 - 查询订单详情（只能查看自己的订单）
-- 取消待支付订单（只能取消自己的订单）
+- 取消待支付订单（只能取消自己的订单），取消时释放预占库存
+- 提供已支付接口，由 `bookmall-payment` 支付成功后调用
 
 ## 2. 当前项目结构
 
@@ -29,8 +33,9 @@
 - `entity`：`Order`、`OrderItem`
 - `dto`：`OrderCreateRequest`、`OrderFromCartRequest`
 - `vo`：`OrderVO`、`OrderDetailVO`
-- `client`：`BookClient`、`CartClient`
-- `client.dto`：`BookSnapshot`、`CartItemSnapshot`
+- `client`：`BookClient`、`CartClient`、`StockClient`
+- `client.dto`：`BookSnapshot`、`CartItemSnapshot`、`StockOperationItem`、`StockOperationRequest`
+- `task`：`OrderTimeoutTask`
 
 ## 3. 配置说明
 
@@ -41,6 +46,8 @@
 - Nacos 注册中心：`localhost:8848`
 - Nacos Config：`order.yaml`
 - MySQL：`localhost:3306/bookmall`
+- 订单过期时间：`bookmall.order.expire-minutes`，默认 `30` 分钟
+- 超时任务频率：`bookmall.order.close-cron`，默认每 `30` 秒执行一次
 
 数据库连接和 JWT 配置在 [nacos-config/order.yaml](D:/workspace_idea/BookMall/nacos-config/order.yaml) 中维护。
 
@@ -94,6 +101,16 @@
 
 取消订单，只允许取消状态为待支付的订单。
 
+### 4.7 PUT /orders/{id}/paid
+
+支付服务支付成功后调用，把待支付订单更新为已支付；已支付订单重复调用按成功处理。
+
+### 4.8 定时任务：关闭超时订单
+
+`OrderTimeoutTask` 每 30 秒扫描一次，只关闭已超过 `expire_time` 且仍为待支付的订单；关闭成功后会释放该订单预占的库存。库存释放失败时订单状态回滚，下一轮任务会重试。
+
+存量环境升级后会为历史订单补齐 `expire_time`，因此很久以前创建的待支付订单可能在下一次扫描时被自动取消；如果历史订单没有锁定库存，释放操作会按“已释放”处理，不会卡住任务。
+
 ## 5. 数据模型
 
 `Order` 映射 `t_order`：
@@ -101,7 +118,7 @@
 - `orderNo`、`userId`、`totalAmount`
 - `status`（0 待支付，2 已取消）
 - `receiverName`、`receiverPhone`、`receiverAddress`
-- `createTime`、`updateTime`
+- `createTime`、`expireTime`、`updateTime`
 
 `OrderItem` 映射 `t_order_item`：
 
@@ -123,7 +140,19 @@
 - 调用接口：`GET /cart/selected`
 - 返回体转换为订单模块自己的 `CartItemSnapshot`
 
-当前订单模块不依赖库存和地址微服务；下单成功后，前端会清理已下单的购物车条目。
+- [StockClient.java](D:/workspace_idea/BookMall/BookMall/bookmall-order/src/main/java/com/bookmall/order/client/StockClient.java) 使用 OpenFeign
+- 服务名：`stock`
+- 调用接口：`POST /stock/deduct`、`POST /stock/release`
+- 下单时预占库存，取消订单或本地落库失败时释放库存
+- 调用接口：`POST /stock/confirm`
+- 支付成功后确认库存，库存服务会减少 `locked_stock`
+
+订单服务也向支付服务提供内部调用接口：
+
+- `GET /orders/{id}`：校验订单归属并返回订单快照
+- `PUT /orders/{id}/paid`：更新订单状态为已支付并确认库存
+
+下单成功后，前端会清理已下单的购物车条目；地址仍由订单请求直接携带，尚未拆分为独立地址微服务。
 
 ## 7. 验证方式
 
@@ -136,6 +165,7 @@ POST http://localhost:8080/api/orders/from-cart
 GET http://localhost:8080/api/orders
 GET http://localhost:8080/api/orders/1
 PUT http://localhost:8080/api/orders/1/cancel
+PUT http://localhost:8080/api/orders/1/paid
 ```
 
 除 `GET /orders/hello` 外，其他接口都需要在请求头携带：

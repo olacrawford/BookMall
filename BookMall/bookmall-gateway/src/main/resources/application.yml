@@ -29,6 +29,12 @@ spring:
             - Path=/api/cart/**
           filters:
             - StripPrefix=1
+        - id: stock
+          uri: lb://stock
+          predicates:
+            - Path=/api/stock/**
+          filters:
+            - StripPrefix=1
         - id: book
           uri: lb://book
           predicates:
@@ -39,6 +45,12 @@ spring:
           uri: lb://order
           predicates:
             - Path=/api/orders/**
+          filters:
+            - StripPrefix=1
+        - id: payment
+          uri: lb://payment
+          predicates:
+            - Path=/api/payment/**
           filters:
             - StripPrefix=1
       globalcors:

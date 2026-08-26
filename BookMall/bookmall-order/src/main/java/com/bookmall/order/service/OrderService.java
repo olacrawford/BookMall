@@ -47,4 +47,17 @@ public interface OrderService {
      * @return true取消成功；false订单不存在/不属于该用户/状态不允许
      */
     boolean cancelOrder(Long id, Long userId);
+
+    /**
+     * 标记订单已支付（只能处理自己的订单）
+     * @param id 订单id
+     * @param userId 当前用户id
+     * @return true更新成功；false订单不存在/不属于该用户/状态不允许
+     */
+    boolean markPaid(Long id, Long userId);
+
+    /**
+     * 定时任务关闭超时未支付订单并释放预占库存
+     */
+    boolean closeExpiredOrder(Long orderId);
 }

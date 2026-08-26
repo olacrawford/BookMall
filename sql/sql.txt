@@ -44,6 +44,51 @@ CREATE TABLE t_book (
     KEY idx_title (title)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='图书表';
 
+-- 收货地址表
+DROP TABLE IF EXISTS t_user_address;
+CREATE TABLE t_user_address (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    receiver_name VARCHAR(50) NOT NULL COMMENT '收货人姓名',
+    receiver_phone VARCHAR(20) NOT NULL COMMENT '收货电话',
+    province VARCHAR(50) DEFAULT NULL COMMENT '省份',
+    city VARCHAR(50) DEFAULT NULL COMMENT '城市',
+    district VARCHAR(50) DEFAULT NULL COMMENT '区县',
+    detail_address VARCHAR(255) NOT NULL COMMENT '详细地址',
+    is_default TINYINT NOT NULL DEFAULT 0 COMMENT '是否默认：0否 1是',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    KEY idx_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='收货地址表';
+
+-- 购物车表
+DROP TABLE IF EXISTS t_cart_item;
+CREATE TABLE t_cart_item (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    book_id BIGINT NOT NULL COMMENT '图书ID',
+    quantity INT NOT NULL DEFAULT 1 COMMENT '购买数量',
+    selected TINYINT NOT NULL DEFAULT 1 COMMENT '是否勾选：0否 1是',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_user_book (user_id, book_id),
+    KEY idx_user_id (user_id),
+    KEY idx_book_id (book_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='购物车表';
+
+-- 图书库存表
+DROP TABLE IF EXISTS t_book_stock;
+CREATE TABLE t_book_stock (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    book_id BIGINT NOT NULL COMMENT '图书ID',
+    stock INT NOT NULL DEFAULT 0 COMMENT '可售库存',
+    locked_stock INT NOT NULL DEFAULT 0 COMMENT '预占库存',
+    version INT NOT NULL DEFAULT 0 COMMENT '乐观锁版本号',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_book_id (book_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='图书库存表';
+
 -- 订单主表
 DROP TABLE IF EXISTS t_order;
 CREATE TABLE t_order (
@@ -56,9 +101,11 @@ CREATE TABLE t_order (
     receiver_phone VARCHAR(20) DEFAULT NULL COMMENT '收货电话',
     receiver_address VARCHAR(255) DEFAULT NULL COMMENT '收货地址',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    expire_time DATETIME NOT NULL COMMENT '订单过期时间',
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     UNIQUE KEY uk_order_no (order_no),
-    KEY idx_user_id (user_id)
+    KEY idx_user_id (user_id),
+    KEY idx_status_expire_time (status, expire_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单主表';
 
 -- 订单明细表
@@ -75,6 +122,25 @@ CREATE TABLE t_order_item (
     KEY idx_order_id (order_id),
     KEY idx_book_id (book_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单明细表';
+
+-- 支付单表
+DROP TABLE IF EXISTS t_payment;
+CREATE TABLE t_payment (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    payment_no VARCHAR(64) NOT NULL COMMENT '支付单号',
+    order_id BIGINT NOT NULL COMMENT '订单ID',
+    order_no VARCHAR(64) NOT NULL COMMENT '订单号',
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    amount DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '支付金额',
+    pay_type VARCHAR(20) NOT NULL DEFAULT 'mock' COMMENT '支付渠道：mock/wechat/alipay',
+    status TINYINT NOT NULL DEFAULT 0 COMMENT '支付状态：0待支付 1已支付 2失败',
+    pay_time DATETIME DEFAULT NULL COMMENT '支付时间',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_payment_no (payment_no),
+    UNIQUE KEY uk_order_id (order_id),
+    KEY idx_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='支付单表';
 
 -- 分类示例数据（大类，不再细分）
 INSERT INTO t_category (name, sort, status) VALUES
@@ -99,3 +165,8 @@ INSERT INTO t_book (title, author, price, category_id, cover_url, description, s
 ('小王子', '圣埃克苏佩里', 32.00, 6, NULL, '写给大人的童话', 1),
 ('艺术的故事', '贡布里希', 128.00, 7, NULL, '西方艺术史经典', 1),
 ('断舍离', '山下英子', 39.80, 8, NULL, '整理与生活哲学', 1);
+
+-- 给所有图书补齐默认库存
+INSERT INTO t_book_stock (book_id, stock, locked_stock, version)
+SELECT id, 100, 0, 0 FROM t_book
+WHERE id NOT IN (SELECT book_id FROM t_book_stock);

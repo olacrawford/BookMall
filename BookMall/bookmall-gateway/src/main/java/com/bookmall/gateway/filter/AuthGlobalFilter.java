@@ -100,8 +100,9 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
             return true;
         }
 
-        // 图书浏览（GET）公开，图书增删改仍需登录
-        return HttpMethod.GET.equals(method) && path.startsWith("/api/books");
+        // 图书浏览和库存查询（GET）公开，增删改与下单预占仍需登录
+        return HttpMethod.GET.equals(method)
+                && (path.startsWith("/api/books") || path.startsWith("/api/stock"));
     }
 
     /**

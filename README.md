@@ -1,15 +1,15 @@
 # BookMall
 
-一个面向学习与展示的微服务图书商城项目，采用前后端分离架构，后端基于 Spring Cloud Alibaba，前端基于 Vue 3。当前保留四个核心业务微服务（用户、图书、购物车、订单）加网关与公共模块，核心链路（注册登录、图书浏览、购物车结算下单、订单管理）已跑通。
+一个面向学习与展示的微服务图书商城项目，采用前后端分离架构，后端基于 Spring Cloud Alibaba，前端基于 Vue 3。当前保留六个核心业务微服务（用户、图书、购物车、库存、支付、订单）加网关与公共模块，核心链路（注册登录、图书浏览、购物车结算下单、库存预占与确认、模拟支付、订单管理与超时关单）已跑通。
 
 ## 项目亮点
 
-- 微服务拆分清晰：认证、图书、购物车、订单四个业务服务 + 网关、公共模块独立演进
+- 微服务拆分清晰：认证、图书、购物车、库存、支付、订单六个业务服务 + 网关、公共模块独立演进
 - 前后端分离：Vue 3 前端通过 Gateway 与各业务服务联通
 - 企业常见基础能力已接入：Nacos、Nacos Config、Gateway、OpenFeign、Redis、Sentinel
 - 网关统一鉴权：JWT 校验 + 用户身份透传（X-User-Id）
 - 接口文档：Knife4j 自动生成在线文档
-- 核心链路可运行：注册、登录、图书浏览、分类查看、购物车结算下单、订单管理
+- 核心链路可运行：注册、登录、图书浏览、分类查看、购物车结算下单、支付确认库存、订单超时自动取消
 
 ## 技术栈
 
@@ -45,7 +45,7 @@ Browser
   -> Vue Frontend (Vite)
   -> /api/**
   -> Gateway (8080)
-  -> auth / book / cart / order
+  -> auth / book / cart / stock / payment / order
   -> MySQL / Nacos
 ```
 
@@ -62,8 +62,10 @@ Browser
 - 图书增删改查 + 分页查询
 - 分类列表（平铺大类，不细分）
 - 购物车页面（加入、数量修改、勾选、删除、清空、结算下单）
+- 图书库存查询、下单预占、支付确认、取消订单释放
+- 支付单生成、内部模拟支付、订单状态变为已支付并确认库存
 - 直接下单（选书 + 填收货信息）
-- 订单列表、详情、取消（含越权校验）
+- 订单列表、详情、取消、超时自动取消（含越权校验）
 
 ### 基础设施
 
@@ -87,7 +89,9 @@ Browser
 
 ### 3. 导入数据库
 
-执行脚本 [sql/sql.txt](sql/sql.txt) 和 [sql/updates/001_cart_address_stock.sql](sql/updates/001_cart_address_stock.sql)，会创建数据库 `bookmall` 及当前 8 张表。
+新环境初始化直接执行 [sql/sql.txt](sql/sql.txt) 即可，脚本已包含用户、图书、购物车、库存、订单、支付等全部 9 张表和默认库存。
+
+已有环境按顺序执行 `sql/updates/001_cart_address_stock.sql`、`002_stock_order.sql`、`003_payment.sql`、`004_order_expire_stock_confirm.sql` 完成增量升级。
 
 ### 4. 数据库与配置
 
@@ -100,8 +104,10 @@ Browser
 1. `bookmall-auth`（8060）
 2. `bookmall-book`（8070）
 3. `bookmall-cart`（8083）
-4. `bookmall-order`（8050）
-5. `bookmall-gateway`（8080）
+4. `bookmall-stock`（8090）
+5. `bookmall-order`（8050）
+6. `bookmall-payment`（8051）
+7. `bookmall-gateway`（8080）
 
 后端主工程说明见 [BookMall/README.md](BookMall/README.md)。
 
@@ -125,6 +131,8 @@ npm run dev
 - [说明文档/BookMall-auth说明文档.md](说明文档/BookMall-auth说明文档.md)
 - [说明文档/BookMall-book说明文档.md](说明文档/BookMall-book说明文档.md)
 - [说明文档/BookMall-cart说明文档.md](说明文档/BookMall-cart说明文档.md)
+- [说明文档/BookMall-stock说明文档.md](说明文档/BookMall-stock说明文档.md)
+- [说明文档/BookMall-payment说明文档.md](说明文档/BookMall-payment说明文档.md)
 - [说明文档/BookMall-order说明文档.md](说明文档/BookMall-order说明文档.md)
 - [说明文档/BookMall-gateway说明文档.md](说明文档/BookMall-gateway说明文档.md)
 

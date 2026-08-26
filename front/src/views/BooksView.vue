@@ -27,11 +27,14 @@
         <div class="cover">{{ (book.title || 'BK').slice(0, 2) }}</div>
         <h4>{{ book.title }}</h4>
         <p>{{ book.author || '匿名作者' }}</p>
+        <p v-if="stockOf(book)" class="stock-line" :class="{ 'stock-out': isSoldOut(book) }">
+          {{ isSoldOut(book) ? '暂时缺货' : `库存 ${availableStock(book)}` }}
+        </p>
         <div class="row book-row">
           <strong>￥{{ book.price }}</strong>
           <div class="book-actions">
-            <button class="ghost" type="button" @click="addToCart(book)">加入购物车</button>
-            <button class="primary" type="button" @click="openBuy(book)">立即购买</button>
+            <button class="ghost" type="button" :disabled="isSoldOut(book)" @click="addToCart(book)">加入购物车</button>
+            <button class="primary" type="button" :disabled="isSoldOut(book)" @click="openBuy(book)">立即购买</button>
           </div>
         </div>
       </article>
@@ -85,7 +88,7 @@
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
-import { bookApi, cartApi, orderApi } from '../api/bookmall'
+import { bookApi, cartApi, orderApi, stockApi } from '../api/bookmall'
 import { getCurrentUser } from '../utils/session'
 
 const books = ref([])
@@ -101,6 +104,7 @@ const categories = ref([])
 const selectedCategoryId = ref(null)
 const buyingBook = ref(null)
 const orderForm = reactive({ quantity: 1, receiverName: '', receiverPhone: '', receiverAddress: '' })
+const stocksById = ref({})
 
 async function loadBooks() {
   loading.value = true
@@ -116,11 +120,36 @@ async function loadBooks() {
     total.value = data.total || 0
     pages.value = data.pages || 0
     pageNum.value = data.current || 1
+    loadStocks()
   } catch (e) {
     error.value = e.message || '加载图书失败'
   } finally {
     loading.value = false
   }
+}
+
+async function loadStocks() {
+  const ids = books.value.map((book) => book.id)
+  const results = await Promise.allSettled(ids.map((id) => stockApi.detail(id)))
+  const next = {}
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      next[ids[index]] = result.value
+    }
+  })
+  stocksById.value = next
+}
+
+function stockOf(book) {
+  return stocksById.value[book.id]
+}
+
+function availableStock(book) {
+  return Number(stockOf(book)?.availableStock ?? 0)
+}
+
+function isSoldOut(book) {
+  return stockOf(book) != null && availableStock(book) <= 0
 }
 
 function search() {
@@ -147,6 +176,10 @@ function openBuy(book) {
     error.value = '请先登录'
     return
   }
+  if (isSoldOut(book)) {
+    error.value = '该图书库存不足'
+    return
+  }
   buyingBook.value = book
   orderForm.quantity = 1
   orderForm.receiverName = ''
@@ -162,6 +195,10 @@ function closeBuy() {
 async function addToCart(book) {
   if (!getCurrentUser()?.userId) {
     error.value = '请先登录'
+    return
+  }
+  if (isSoldOut(book)) {
+    error.value = '该图书库存不足'
     return
   }
   try {
@@ -233,6 +270,16 @@ onMounted(() => {
 .meta-line {
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.stock-line {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.stock-out {
+  color: #b5475a;
+  font-weight: 700;
 }
 
 .pagination {

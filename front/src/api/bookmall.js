@@ -25,6 +25,12 @@ export const bookApi = {
   }
 }
 
+export const stockApi = {
+  detail(bookId) {
+    return http.get(`/api/stock/${bookId}`).then(unwrapResult)
+  }
+}
+
 export const cartApi = {
   list() {
     return http.get('/api/cart').then(unwrapResult)
@@ -58,5 +64,14 @@ export const orderApi = {
   },
   cancel(id) {
     return http.put(`/api/orders/${id}/cancel`).then(unwrapResult)
+  }
+}
+
+export const paymentApi = {
+  pay(orderId) {
+    return http.post('/api/payment/pay', { orderId }).then(unwrapResult)
+  },
+  detail(orderId) {
+    return http.get(`/api/payment/order/${orderId}`).then(unwrapResult)
   }
 }

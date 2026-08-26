@@ -28,7 +28,9 @@
 | `bookmall-auth` | 8060 | 注册、登录、地址管理 |
 | `bookmall-book` | 8070 | 图书、分类、Redis 缓存、Sentinel |
 | `bookmall-cart` | 8083 | 购物车条目、OpenFeign 图书校验 |
+| `bookmall-stock` | 8090 | 库存查询、下单预占、取消释放 |
 | `bookmall-order` | 8050 | 直接/购物车下单、订单管理、OpenFeign |
+| `bookmall-payment` | 8051 | 支付单、内部模拟支付、订单状态更新 |
 
 ## 3. 当前基础设施能力
 
@@ -38,14 +40,16 @@
 
 - 服务注册与发现
 - Nacos Config 配置中心
-- Gateway 通过 `lb://auth`、`lb://book`、`lb://cart`、`lb://order` 路由
+- Gateway 通过 `lb://auth`、`lb://book`、`lb://cart`、`lb://stock`、`lb://order`、`lb://payment` 路由
 
 配置脚本位于 `nacos-config/`：
 
 - `auth.yaml`
 - `book.yaml`
 - `cart.yaml`
+- `stock.yaml`
 - `order.yaml`
+- `payment.yaml`
 - `gateway.yaml`
 
 更新配置后执行：
@@ -72,6 +76,7 @@ bash publish.sh
 - `t_user_address`
 - `t_cart_item`
 - `t_book_stock`
+- `t_payment`
 
 ### 3.3 Redis
 
@@ -88,6 +93,12 @@ bash publish.sh
 - QPS 阈值：每秒 1 次
 - 超限返回 429
 
+Windows 下如果 Sentinel 无法写 `C:\logs\csp`，启动 `bookmall-book` 时指定项目内日志目录：
+
+```text
+mvn -o -s D:\workspace_idea\BookMall\.m2\settings.xml -f D:\workspace_idea\BookMall\BookMall\pom.xml -pl bookmall-book spring-boot:run '-Dspring-boot.run.jvmArguments=-Dcsp.sentinel.log.dir=D:/workspace_idea/BookMall/logs/sentinel'
+```
+
 ### 3.5 OpenFeign
 
 当前 `bookmall-order` 和 `bookmall-cart` 使用 OpenFeign：
@@ -96,6 +107,8 @@ bash publish.sh
 - 调用：`GET /books/{id}`
 - 分别返回订单模块、购物车模块自己的 `BookSnapshot`
 - 订单服务还通过服务名 `cart` 调用 `GET /cart/selected`，读取购物车已选条目
+- 订单服务通过服务名 `stock` 调用 `POST /stock/deduct`、`POST /stock/confirm` 和 `POST /stock/release`，完成预占、支付确认和取消/超时释放
+- 支付服务通过服务名 `order` 调用 `GET /orders/{id}` 和 `PUT /orders/{id}/paid`，完成支付状态流转
 
 ## 4. 启动顺序
 
@@ -104,16 +117,19 @@ bash publish.sh
 1. `bookmall-auth`（8060）
 2. `bookmall-book`（8070）
 3. `bookmall-cart`（8083）
-4. `bookmall-order`（8050）
-5. `bookmall-gateway`（8080）
+4. `bookmall-stock`（8090）
+5. `bookmall-order`（8050）
+6. `bookmall-payment`（8051）
+7. `bookmall-gateway`（8080）
 
 常用 Maven 命令：
 
 ```text
-mvn -o -s D:\workspace_idea\BookMall\.m2\settings.xml -f D:\workspace_idea\BookMall\BookMall\pom.xml -pl bookmall-auth -am spring-boot:run
+mvn -o -s D:\workspace_idea\BookMall\.m2\settings.xml -f D:\workspace_idea\BookMall\BookMall\pom.xml -DskipTests install
+mvn -o -s D:\workspace_idea\BookMall\.m2\settings.xml -f D:\workspace_idea\BookMall\BookMall\pom.xml -pl bookmall-auth spring-boot:run
 ```
 
-将 `bookmall-auth` 替换为其他模块名即可启动对应服务。
+先执行 `install` 安装公共模块，再把 `bookmall-auth` 替换为其他模块名即可启动对应服务。不要对 `spring-boot:run` 使用 `-am`，否则会尝试在父工程上找启动类。
 
 ## 5. 当前状态
 

@@ -15,6 +15,7 @@ front/.vite/
 
 # Local env and caches
 front/.env.local
+logs/
 
 # Unused local folders
 META-INF/

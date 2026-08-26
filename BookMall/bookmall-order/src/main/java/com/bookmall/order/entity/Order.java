@@ -19,6 +19,7 @@ public class Order {
     private String receiverPhone;
     private String receiverAddress;
     private LocalDateTime createTime;
+    private LocalDateTime expireTime;
     private LocalDateTime updateTime;
 
 }

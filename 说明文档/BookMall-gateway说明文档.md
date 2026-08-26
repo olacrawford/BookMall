@@ -6,7 +6,7 @@
 
 当前已实现：
 
-- 路由转发到 `auth`、`book`、`order` 服务
+- 路由转发到 `auth`、`book`、`cart`、`stock`、`order`、`payment` 服务
 - 通过 Nacos 服务名完成服务发现与负载均衡
 - 校验 JWT，并把 `userId` 写入 `X-User-Id` 请求头透传给下游
 - 登录、注册、健康检查和图书浏览接口白名单放行
@@ -32,10 +32,14 @@
   uri: lb://auth
 - id: cart
   uri: lb://cart
+- id: stock
+  uri: lb://stock
 - id: book
   uri: lb://book
 - id: order
   uri: lb://order
+- id: payment
+  uri: lb://payment
 ```
 
 ## 4. 当前路由规则
@@ -44,8 +48,10 @@
 |---|---|---|
 | `/api/auth/**` | `auth` | `/auth/**` |
 | `/api/cart/**` | `cart` | `/cart/**` |
+| `/api/stock/**` | `stock` | `/stock/**` |
 | `/api/books/**` | `book` | `/books/**` |
 | `/api/orders/**` | `order` | `/orders/**` |
+| `/api/payment/**` | `payment` | `/payment/**` |
 
 网关通过 `StripPrefix=1` 去掉路径中的 `api`。
 
@@ -71,6 +77,7 @@ X-User-Id: <userId>
 - `POST /api/auth/register`
 - 任意以 `/hello` 结尾的接口
 - `GET /api/books/**`
+- `GET /api/stock/**`
 
 未携带 token、token 无效或 token 过期时返回 `401`。
 
@@ -98,7 +105,9 @@ X-User-Id: <userId>
 ```text
 GET http://localhost:8080/api/auth/hello
 GET http://localhost:8080/api/books/hello
+GET http://localhost:8080/api/stock/hello
 GET http://localhost:8080/api/orders/hello
+GET http://localhost:8080/api/payment/hello
 ```
 
 需要登录的接口：

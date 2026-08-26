@@ -3,6 +3,7 @@ package com.bookmall.order.vo;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 public class OrderVO {
@@ -12,5 +13,6 @@ public class OrderVO {
     private Long userId;
     private BigDecimal totalAmount;
     private Integer status;
+    private LocalDateTime expireTime;
 
 }

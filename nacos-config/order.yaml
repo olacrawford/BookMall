@@ -4,3 +4,8 @@ spring:
     url: jdbc:mysql://localhost:3306/bookmall?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
     username: root
     password: 123456
+
+bookmall:
+  order:
+    expire-minutes: 30
+    close-cron: "0/30 * * * * ?"
