@@ -1,10 +1,14 @@
 package com.bookmall.order.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.bookmall.common.exception.BusinessException;
 import com.bookmall.common.result.Result;
 import com.bookmall.order.client.BookClient;
+import com.bookmall.order.client.CartClient;
 import com.bookmall.order.client.dto.BookSnapshot;
+import com.bookmall.order.client.dto.CartItemSnapshot;
 import com.bookmall.order.dto.OrderCreateRequest;
+import com.bookmall.order.dto.OrderFromCartRequest;
 import com.bookmall.order.entity.Order;
 import com.bookmall.order.entity.OrderItem;
 import com.bookmall.order.mapper.OrderItemMapper;
@@ -17,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -30,24 +35,23 @@ public class OrderServiceImpl implements OrderService {
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
     private final BookClient bookClient;
+    private final CartClient cartClient;
 
     // 构造注入 mapper 和 Feign 客户端
     public OrderServiceImpl(OrderMapper orderMapper,
                             OrderItemMapper orderItemMapper,
-                            BookClient bookClient) {
+                            BookClient bookClient,
+                            CartClient cartClient) {
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
         this.bookClient = bookClient;
+        this.cartClient = cartClient;
     }
 
     /**
      * 直接下单：Feign 调图书服务拿价格/标题 → 算总价 → 落订单 + 明细
-     * @param userId 当前登录用户id
-     * @param request 下单请求
-     * @return 订单详情，图书不存在返回null
      */
     @Override
-    //事务注解
     @Transactional(rollbackFor = Exception.class)
     public OrderDetailVO createOrder(Long userId, OrderCreateRequest request) {
         // 通过 Feign 调图书服务拿价格与标题（下单即快照，避免后续改价影响历史订单）
@@ -56,9 +60,48 @@ public class OrderServiceImpl implements OrderService {
             return null;
         }
 
-        // 总价 = 单价 × 数量
         BigDecimal totalAmount = book.getPrice().multiply(BigDecimal.valueOf(request.getQuantity()));
+        Order order = insertOrderHead(userId, totalAmount,
+                request.getReceiverName(), request.getReceiverPhone(), request.getReceiverAddress());
+        insertOrderItem(order, book, request.getQuantity());
+        return getOrderDetail(order.getId(), userId);
+    }
 
+    /**
+     * 购物车下单：读取购物车已选条目，一次创建订单主表和多条订单明细
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public OrderDetailVO createOrderFromCart(Long userId, OrderFromCartRequest request) {
+        List<CartItemSnapshot> cartItems = successfulData(cartClient.selectedItems(userId));
+        if (cartItems == null || cartItems.isEmpty()) {
+            throw new BusinessException(400, "购物车没有选中的商品");
+        }
+
+        // 先远程校验每本书，并计算总价；任一本书异常时不落库
+        List<BookSnapshot> books = new ArrayList<>();
+        List<Integer> quantities = new ArrayList<>();
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        for (CartItemSnapshot item : cartItems) {
+            BookSnapshot book = successfulData(bookClient.getBookById(item.getBookId()));
+            if (book == null || book.getPrice() == null) {
+                throw new BusinessException(400, "购物车中有图书不存在或已下架");
+            }
+            books.add(book);
+            quantities.add(item.getQuantity());
+            totalAmount = totalAmount.add(book.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+        }
+
+        Order order = insertOrderHead(userId, totalAmount,
+                request.getReceiverName(), request.getReceiverPhone(), request.getReceiverAddress());
+        for (int i = 0; i < books.size(); i++) {
+            insertOrderItem(order, books.get(i), quantities.get(i));
+        }
+        return getOrderDetail(order.getId(), userId);
+    }
+
+    private Order insertOrderHead(Long userId, BigDecimal totalAmount,
+                                  String receiverName, String receiverPhone, String receiverAddress) {
         // 订单号：OD + 时间戳 + UUID 前6位，保证唯一
         String orderNo = "OD" + System.currentTimeMillis() + UUID.randomUUID().toString().substring(0, 6);
 
@@ -67,25 +110,26 @@ public class OrderServiceImpl implements OrderService {
         order.setUserId(userId);
         order.setTotalAmount(totalAmount);
         order.setStatus(0); // 0 待支付
-        order.setReceiverName(request.getReceiverName());
-        order.setReceiverPhone(request.getReceiverPhone());
-        order.setReceiverAddress(request.getReceiverAddress());
+        order.setReceiverName(receiverName);
+        order.setReceiverPhone(receiverPhone);
+        order.setReceiverAddress(receiverAddress);
         order.setCreateTime(LocalDateTime.now());
         order.setUpdateTime(LocalDateTime.now());
         orderMapper.insert(order);
+        return order;
+    }
 
-        // 订单明细：快照图书标题和单价
+    private void insertOrderItem(Order order, BookSnapshot book, Integer quantity) {
+        BigDecimal subtotal = book.getPrice().multiply(BigDecimal.valueOf(quantity));
         OrderItem orderItem = new OrderItem();
         orderItem.setOrderId(order.getId());
         orderItem.setBookId(book.getId());
         orderItem.setBookTitle(book.getTitle());
         orderItem.setBookPrice(book.getPrice());
-        orderItem.setQuantity(request.getQuantity());
-        orderItem.setSubtotal(totalAmount);
+        orderItem.setQuantity(quantity);
+        orderItem.setSubtotal(subtotal);
         orderItem.setCreateTime(LocalDateTime.now());
         orderItemMapper.insert(orderItem);
-
-        return getOrderDetail(order.getId(), userId);
     }
 
     // 判断远程调用是否成功（code == 200）
@@ -148,7 +192,6 @@ public class OrderServiceImpl implements OrderService {
         vo.setReceiverPhone(order.getReceiverPhone());
         vo.setReceiverAddress(order.getReceiverAddress());
 
-        // 订单明细转 VO 列表
         List<OrderDetailVO.OrderItemVO> itemVOList = items.stream()
                 .map(item -> {
                     OrderDetailVO.OrderItemVO itemVO = new OrderDetailVO.OrderItemVO();
@@ -172,11 +215,9 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(rollbackFor = Exception.class)
     public boolean cancelOrder(Long id, Long userId) {
         Order order = orderMapper.selectById(id);
-        // 只能操作自己的订单
         if (order == null || !order.getUserId().equals(userId)) {
             return false;
         }
-        // 仅待支付状态(0)的订单可取消
         if (order.getStatus() == null || order.getStatus() != 0) {
             return false;
         }

@@ -17,6 +17,7 @@
       <nav>
         <RouterLink to="/home">平台总览</RouterLink>
         <RouterLink to="/books">图书中心</RouterLink>
+        <RouterLink to="/cart">购物车</RouterLink>
         <RouterLink to="/orders">订单中心</RouterLink>
       </nav>
     </aside>

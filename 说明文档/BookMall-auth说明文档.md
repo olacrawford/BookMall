@@ -9,8 +9,7 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 - 用户登录
 - BCrypt 密码加密
 - JWT 令牌生成
-- JWT 令牌解析
-- 当前登录用户信息查询
+- 收货地址管理
 
 本文档记录当前 `auth` 模块的实现状态、配置、目录结构、接口设计和验证方式。
 
@@ -20,6 +19,10 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 
 - `bookmall-common`
 - `bookmall-auth`
+- `bookmall-book`
+- `bookmall-cart`
+- `bookmall-order`
+- `bookmall-gateway`
 
 当前项目目录中的关键部分：
 
@@ -39,6 +42,10 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 - 当前模块包括：
   - `bookmall-common`
   - `bookmall-auth`
+  - `bookmall-book`
+  - `bookmall-cart`
+  - `bookmall-order`
+  - `bookmall-gateway`
 
 当前使用的版本：
 
@@ -116,8 +123,7 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 - 用户登录
 - 密码加密存储
 - JWT 生成
-- JWT 解析
-- 当前登录用户信息查询
+- 收货地址管理
 
 ### 5.1 启动类
 
@@ -144,10 +150,12 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 当前配置包含：
 
 - 服务端口：`8060`
-- 服务名：`bookmall-auth`
-- 数据源：连接本地 MySQL 的 `bookmall` 数据库
+- 服务名：`auth`
+- Nacos 注册中心与 Nacos Config：`localhost:8848`
+- Nacos Config：`auth.yaml`
 - MyBatis-Plus 配置
-- JWT 配置
+
+数据源和 JWT 配置位于 [nacos-config/auth.yaml](D:/workspace_idea/BookMall/nacos-config/auth.yaml)。
 
 当前 MySQL 连接信息：
 
@@ -155,7 +163,7 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 - Port: `3306`
 - Database: `bookmall`
 - Username: `root`
-- Password: `root`
+- Password: `123456`
 
 当前 JWT 配置：
 
@@ -246,21 +254,29 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 - 生成 JWT token
 - 返回 `LoginResponse`
 
-### 6.4 GET /auth/me
+### 6.4 地址管理接口
 
-用途：
+地址接口前缀为 `/auth/addresses`，通过网关访问时为 `/api/auth/addresses`。
 
-- 获取当前登录用户信息
+当前接口：
+
+- `GET /auth/addresses`：查询当前用户地址列表
+- `POST /auth/addresses`：新增地址
+- `PUT /auth/addresses/{id}`：修改地址
+- `PUT /auth/addresses/{id}/default`：设置默认地址
+- `DELETE /auth/addresses/{id}`：删除地址
 
 请求头：
 
-- `Authorization: Bearer <token>`
+- `X-User-Id`：由网关解析 JWT 后透传，地址接口不接收前端传入的用户 ID
 
-功能说明：
+地址请求字段：
 
-- 去掉 `Bearer ` 前缀
-- 解析 JWT
-- 返回当前用户信息
+- `receiverName`：收货人
+- `receiverPhone`：联系电话
+- `province` / `city` / `district`：省市区分段
+- `detailAddress`：详细地址
+- `isDefault`：是否设为默认地址
 
 ## 7. 业务类结构说明
 
@@ -269,6 +285,14 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 文件路径：
 
 - [User.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/entity/User.java)
+
+收货地址实体：
+
+- [UserAddress.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/entity/UserAddress.java)
+
+映射表：
+
+- `t_user_address`
 
 映射表：
 
@@ -291,6 +315,7 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 文件路径：
 
 - [UserMapper.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/mapper/UserMapper.java)
+- [UserAddressMapper.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/mapper/UserAddressMapper.java)
 
 说明：
 
@@ -307,15 +332,20 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 
 - [LoginRequest.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/dto/LoginRequest.java)
 
+地址请求：
+
+- [AddressRequest.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/dto/AddressRequest.java)
+
 ### 7.4 VO
 
 登录返回：
 
 - [LoginResponse.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/vo/LoginResponse.java)
 
-当前用户返回：
+注册返回与地址返回：
 
-- [CurrentUserResponse.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/vo/CurrentUserResponse.java)
+- [UserVO.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/vo/UserVO.java)
+- [AddressVO.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/vo/AddressVO.java)
 
 ### 7.5 Service
 
@@ -331,7 +361,19 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 
 - `register(RegisterRequest request)`
 - `login(LoginRequest request)`
-- `currentUser(String token)`
+
+地址服务：
+
+- [AddressService.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/service/AddressService.java)
+- [AddressServiceImpl.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/service/impl/AddressServiceImpl.java)
+
+当前方法：
+
+- `list(Long userId)`
+- `create(Long userId, AddressRequest request)`
+- `update(Long userId, Long addressId, AddressRequest request)`
+- `setDefault(Long userId, Long addressId)`
+- `delete(Long userId, Long addressId)`
 
 ### 7.6 JWT 工具类
 
@@ -356,15 +398,16 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 - `t_user`
 - `t_category`
 - `t_book`
-- `t_inventory`
-- `t_cart`
+- `t_book_stock`
+- `t_cart_item`
 - `t_order`
 - `t_order_item`
-- `t_address`
+- `t_user_address`
 
 其中 `auth` 模块当前主要使用：
 
 - `t_user`
+- `t_user_address`
 
 ## 9. 已验证功能
 
@@ -373,9 +416,14 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 - `GET /auth/hello` 可访问
 - `POST /auth/register` 可注册新用户
 - `POST /auth/login` 可登录并返回 token
-- `GET /auth/me` 可根据 token 获取当前用户信息
+- `GET /auth/addresses` 可查询当前用户地址
+- `POST /auth/addresses` 可新增地址
+- `PUT /auth/addresses/{id}` 可修改地址
+- `PUT /auth/addresses/{id}/default` 可设置默认地址
+- `DELETE /auth/addresses/{id}` 可删除地址
 - 重复用户名会返回业务错误
 - 密码已使用 BCrypt 加密存储
+- 地址接口只信任网关透传的 `X-User-Id`
 
 ## 10. 当前测试方式
 
@@ -411,17 +459,20 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 }
 ```
 
-### 10.3 当前用户接口测试
+### 10.3 地址接口测试
 
-请求头示例：
+通过网关访问，需要先登录获取 token：
 
 ```text
+GET http://localhost:8080/api/auth/addresses
 Authorization: Bearer xxxxx.yyyyy.zzzzz
 ```
 
+网关会校验 token 并写入 `X-User-Id`，地址接口再按当前用户查询、修改或删除地址。
+
 ## 11. 当前模块状态总结
 
-`auth` 模块已经完成了最小可用闭环，属于当前项目中第一个完成的微服务模块。
+`auth` 模块已经完成了认证和收货地址管理的最小可用闭环。
 
 现在它已经具备：
 
@@ -429,20 +480,9 @@ Authorization: Bearer xxxxx.yyyyy.zzzzz
 - 可注册
 - 可登录
 - 可发 token
-- 可解析 token
-- 可获取当前登录用户
+- 可管理当前用户收货地址
 
-## 12. 后续开发计划
-
-下一步建议开发：
-
-- `bookmall-book`：图书列表、图书详情、分类、搜索
-- `bookmall-gateway`：统一网关入口与鉴权
-- `bookmall-cart`：购物车
-- `bookmall-order`：订单
-- `bookmall-inventory`：库存
-
-## 13. 维护规则
+## 12. 维护规则
 
 以后每完成一个模块，都要同步输出一份对应的说明文档，建议命名格式如下：
 
@@ -459,7 +499,3 @@ Authorization: Bearer xxxxx.yyyyy.zzzzz
 - 数据模型
 - 测试方式
 - 当前状态
-- 下一步计划
-```
-
-以后我会按这个方式直接在可写输出目录里给你生成文档，不再让你手动复制。下一步我们就继续做 `bookmall-book`。如果你愿意，我可以直接开始并且同样给它生成一份说明文档。<|endoftext|>seealso to=functions.exec_command  天天中彩票可以  尚度={

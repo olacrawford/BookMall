@@ -16,6 +16,7 @@
         <module>bookmall-common</module>
         <module>bookmall-auth</module>
         <module>bookmall-book</module>
+        <module>bookmall-cart</module>
         <module>bookmall-gateway</module>
         <module>bookmall-order</module>
     </modules>

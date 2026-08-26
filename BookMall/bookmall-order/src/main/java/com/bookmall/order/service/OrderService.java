@@ -1,6 +1,7 @@
 package com.bookmall.order.service;
 
 import com.bookmall.order.dto.OrderCreateRequest;
+import com.bookmall.order.dto.OrderFromCartRequest;
 import com.bookmall.order.vo.OrderDetailVO;
 import com.bookmall.order.vo.OrderVO;
 
@@ -18,6 +19,11 @@ public interface OrderService {
      * @return 创建完成的订单详情，图书不存在返回null
      */
     OrderDetailVO createOrder(Long userId, OrderCreateRequest request);
+
+    /**
+     * 购物车下单：读取购物车已选条目并创建多明细订单
+     */
+    OrderDetailVO createOrderFromCart(Long userId, OrderFromCartRequest request);
 
     /**
      * 查询某用户的订单列表

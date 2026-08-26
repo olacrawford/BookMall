@@ -5,12 +5,13 @@
         <p class="eyebrow">Platform Overview</p>
         <h3>BookMall 微服务业务总览</h3>
         <p class="muted hero-copy">
-          当前前端已经对接网关入口，围绕认证、图书、订单三个核心服务组织页面结构。
+          当前前端已经对接网关入口，围绕认证、图书、购物车、订单四个核心服务组织页面结构。
           这里更像一个已经上线的业务控制台，而不只是接口调试页。
         </p>
       </div>
       <div class="hero-actions">
         <RouterLink class="primary home-link" to="/books">进入图书中心</RouterLink>
+        <RouterLink class="ghost home-link" to="/cart">查看购物车</RouterLink>
         <RouterLink class="ghost home-link" to="/orders">查看订单中心</RouterLink>
       </div>
     </section>
@@ -75,6 +76,10 @@
             <strong>图书中心</strong>
             <p class="muted">浏览图书、分页查询并直接下单</p>
           </RouterLink>
+          <RouterLink class="entry-card" to="/cart">
+            <strong>购物车</strong>
+            <p class="muted">查看购物车、调整数量并管理商品</p>
+          </RouterLink>
           <RouterLink class="entry-card" to="/orders">
             <strong>订单中心</strong>
             <p class="muted">查看订单状态、详情和取消操作</p>
@@ -93,6 +98,7 @@ const error = ref('')
 const probes = reactive([
   { name: 'Auth Service', url: '/api/auth/hello', status: '未检查' },
   { name: 'Book Service', url: '/api/books/hello', status: '未检查' },
+  { name: 'Cart Service', url: '/api/cart/hello', status: '未检查' },
   { name: 'Order Service', url: '/api/orders/hello', status: '未检查' }
 ])
 

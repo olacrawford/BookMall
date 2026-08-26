@@ -1,15 +1,15 @@
 # BookMall
 
-一个面向学习与展示的微服务图书商城项目，采用前后端分离架构，后端基于 Spring Cloud Alibaba，前端基于 Vue 3。当前保留三个核心业务微服务（用户、图书、订单）加网关与公共模块，核心链路（注册登录、图书浏览、直接下单、订单管理）已跑通。
+一个面向学习与展示的微服务图书商城项目，采用前后端分离架构，后端基于 Spring Cloud Alibaba，前端基于 Vue 3。当前保留四个核心业务微服务（用户、图书、购物车、订单）加网关与公共模块，核心链路（注册登录、图书浏览、购物车结算下单、订单管理）已跑通。
 
 ## 项目亮点
 
-- 微服务拆分清晰：认证、图书、订单三个业务服务 + 网关、公共模块独立演进
+- 微服务拆分清晰：认证、图书、购物车、订单四个业务服务 + 网关、公共模块独立演进
 - 前后端分离：Vue 3 前端通过 Gateway 与各业务服务联通
 - 企业常见基础能力已接入：Nacos、Nacos Config、Gateway、OpenFeign、Redis、Sentinel
 - 网关统一鉴权：JWT 校验 + 用户身份透传（X-User-Id）
 - 接口文档：Knife4j 自动生成在线文档
-- 核心链路可运行：注册、登录、图书浏览、分类查看、直接下单、订单管理
+- 核心链路可运行：注册、登录、图书浏览、分类查看、购物车结算下单、订单管理
 
 ## 技术栈
 
@@ -33,7 +33,7 @@
 BookMall/
 ├─ BookMall/        后端微服务工程
 ├─ front/           前端工程
-├─ sql/             数据库脚本
+├─ sql/             数据库脚本（sql.txt + updates/ 增量脚本）
 ├─ nacos-config/    Nacos 配置中心脚本
 └─ 说明文档/         模块说明文档
 ```
@@ -45,7 +45,7 @@ Browser
   -> Vue Frontend (Vite)
   -> /api/**
   -> Gateway (8080)
-  -> auth / book / order
+  -> auth / book / cart / order
   -> MySQL / Nacos
 ```
 
@@ -55,11 +55,13 @@ Browser
 
 - 用户注册
 - 用户登录
+- 收货地址管理
 
 ### 商城侧
 
 - 图书增删改查 + 分页查询
 - 分类列表（平铺大类，不细分）
+- 购物车页面（加入、数量修改、勾选、删除、清空、结算下单）
 - 直接下单（选书 + 填收货信息）
 - 订单列表、详情、取消（含越权校验）
 
@@ -75,20 +77,21 @@ Browser
 ### 1. 基础环境
 
 - Windows + IDEA 启动 Java 服务
-- Docker 启动 MySQL、Nacos
+- Docker 启动 MySQL、Nacos、Redis
 
 ### 2. 启动基础设施
 
 - MySQL: `localhost:3306`
 - Nacos: `localhost:8848`
+- Redis: `localhost:6379`
 
 ### 3. 导入数据库
 
-执行脚本 [sql/sql.txt](sql/sql.txt)，会创建数据库 `bookmall` 及核心表。
+执行脚本 [sql/sql.txt](sql/sql.txt) 和 [sql/updates/001_cart_address_stock.sql](sql/updates/001_cart_address_stock.sql)，会创建数据库 `bookmall` 及当前 8 张表。
 
 ### 4. 数据库与配置
 
-数据库连接、Nacos 地址、JWT 密钥等已直接写在各服务的 `application.yml` 里（默认 `localhost:3306`、账号 `root`、密码 `123456`），本地直连无需额外配置。
+数据库连接、JWT 密钥、Redis 地址等环境依赖写在 `nacos-config/*.yaml` 里（默认 `localhost:3306`、账号 `root`、密码 `123456`）。各服务 `application.yml` 只维护端口、Nacos 地址和配置导入，本地直连无需额外修改。
 
 ### 5. 启动后端服务
 
@@ -96,8 +99,9 @@ Browser
 
 1. `bookmall-auth`（8060）
 2. `bookmall-book`（8070）
-3. `bookmall-order`（8050）
-4. `bookmall-gateway`（8080）
+3. `bookmall-cart`（8083）
+4. `bookmall-order`（8050）
+5. `bookmall-gateway`（8080）
 
 后端主工程说明见 [BookMall/README.md](BookMall/README.md)。
 
@@ -120,5 +124,7 @@ npm run dev
 - [说明文档/BookMall-基础设施搭建说明.md](说明文档/BookMall-基础设施搭建说明.md)
 - [说明文档/BookMall-auth说明文档.md](说明文档/BookMall-auth说明文档.md)
 - [说明文档/BookMall-book说明文档.md](说明文档/BookMall-book说明文档.md)
+- [说明文档/BookMall-cart说明文档.md](说明文档/BookMall-cart说明文档.md)
 - [说明文档/BookMall-order说明文档.md](说明文档/BookMall-order说明文档.md)
 - [说明文档/BookMall-gateway说明文档.md](说明文档/BookMall-gateway说明文档.md)
+

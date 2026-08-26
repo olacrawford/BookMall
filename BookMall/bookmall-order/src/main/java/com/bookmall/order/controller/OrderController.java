@@ -2,6 +2,7 @@ package com.bookmall.order.controller;
 
 import com.bookmall.common.result.Result;
 import com.bookmall.order.dto.OrderCreateRequest;
+import com.bookmall.order.dto.OrderFromCartRequest;
 import com.bookmall.order.service.OrderService;
 import com.bookmall.order.vo.OrderDetailVO;
 import com.bookmall.order.vo.OrderVO;
@@ -38,6 +39,13 @@ public class OrderController {
             return Result.fail(400, "下单失败，请检查图书信息");
         }
         return Result.success(detail);
+    }
+
+    // 购物车下单：只接收收货信息，图书和数量来自购物车中已选条目
+    @PostMapping("/from-cart")
+    public Result<OrderDetailVO> createOrderFromCart(@RequestHeader("X-User-Id") Long userId,
+                                                     @Valid @RequestBody OrderFromCartRequest request) {
+        return Result.success(orderService.createOrderFromCart(userId, request));
     }
 
     // 查询当前用户的订单列表

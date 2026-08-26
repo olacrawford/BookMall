@@ -1,6 +1,6 @@
 # BookMall 项目说明文档
 
-> 一个基于 Spring Cloud Alibaba 的微服务图书商城项目，当前保留用户、图书、订单三个核心业务服务 + 网关与公共模块，前后端主链路已跑通，适合作为微服务课程设计、毕业设计或个人作品集项目。
+> 一个基于 Spring Cloud Alibaba 的微服务图书商城项目，当前保留用户、图书、购物车、订单四个核心业务服务 + 网关与公共模块，前后端主链路已跑通，适合作为微服务课程设计、毕业设计或个人作品集项目。
 
 ## 项目定位
 
@@ -42,16 +42,17 @@ BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目�
 |---|---:|---|
 | `bookmall-common` | - | 公共返回体、错误码、异常处理、分页对象 |
 | `bookmall-gateway` | 8080 | 统一入口、路由转发、JWT 鉴权、跨域 |
-| `bookmall-auth` | 8060 | 注册、登录 |
+| `bookmall-auth` | 8060 | 注册、登录、收货地址管理 |
 | `bookmall-book` | 8070 | 图书增删改查、分页、分类 |
-| `bookmall-order` | 8050 | 订单（直接下单、列表、详情、取消） |
+| `bookmall-cart` | 8083 | 购物车增加、查询、修改、删除、清空、结算 |
+| `bookmall-order` | 8050 | 订单（直接下单、购物车下单、列表、详情、取消） |
 | `front` | 5173 | 前端，Vite 托管 |
 
 ## 项目亮点
 
-- 微服务职责划分清楚，便于继续扩展消息队列、分布式事务和链路追踪
+- 微服务职责划分清楚，当前已形成可运行的注册、发现、路由、鉴权和远程调用链路
 - 网关统一鉴权：在 Gateway 校验 JWT，并把 userId 透传给下游（`X-User-Id`），下游不再信任前端传的 userId
-- OpenFeign 服务间调用：订单服务通过 Feign 调图书服务拿价格/标题，下单即快照
+- OpenFeign 服务间调用：购物车调图书服务校验图书，订单调图书服务拿价格快照，并从购物车读取已选条目
 - 统一返回体 + 全局异常处理，接口成功失败格式一致
 - 订单越权校验：只能查看/取消自己的订单
 
@@ -62,7 +63,7 @@ BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目�
   -> Vue Frontend (Vite, 5173)
   -> /api/**
   -> Gateway (8080)  —— 路由 + JWT 鉴权 + 跨域
-  -> auth / book / order
+  -> auth / book / cart / order
   -> MySQL / Nacos
 ```
 
@@ -97,6 +98,8 @@ BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目�
 
 脚本里还内置了 8 个示例分类（文学、计算机、历史等）。
 
+增量脚本 `sql/updates/001_cart_address_stock.sql` 再增加 `t_user_address`、`t_cart_item`、`t_book_stock` 三张表，当前数据库共 8 张表。
+
 数据库连接、Redis 地址等环境相关配置放在 **Nacos 配置中心**（dataId 为各服务名，如 `book.yaml`），数据库默认 `root` / `123456`。首次运行或 Nacos 数据丢失后，执行 `nacos-config/publish.sh` 重新发布配置。
 
 ### 3. 启动顺序
@@ -104,8 +107,9 @@ BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目�
 1. 启动 MySQL、Redis（`docker start redis`）、Nacos
 2. 启动 `bookmall-auth`（8060）
 3. 启动 `bookmall-book`（8070）
-4. 启动 `bookmall-order`（8050）
-5. 启动 `bookmall-gateway`（8080）
+4. 启动 `bookmall-cart`（8083）
+5. 启动 `bookmall-order`（8050）
+6. 启动 `bookmall-gateway`（8080）
 
 ### 4. 前端运行
 
@@ -166,6 +170,7 @@ for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
 - 统一 `Result` 返回体
 - 全局异常处理
 - JWT 登录态 + BCrypt 密码加密
+- Auth 收货地址管理
 
 ## 关键实现
 
@@ -201,6 +206,7 @@ for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
 ### `bookmall-order`
 
 - `POST /orders`：直接下单（Feign 调图书服务拿价格 → 算总价 → 落订单 + 明细快照）
+- `POST /orders/from-cart`：购物车已选条目下单（Feign 调购物车和图书服务 → 创建多明细订单）
 - `GET /orders`：订单列表
 - `GET /orders/{id}`、`PUT /orders/{id}/cancel`：详情 / 取消（含越权校验，只能操作自己的订单）
 - userId 从网关透传的 `X-User-Id` 头获取
@@ -213,9 +219,10 @@ for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
 
 ### 接口文档（Knife4j）
 
-- 三个业务服务已接入 Knife4j，启动后访问：
+- 四个业务服务已接入 Knife4j，启动后访问：
   - 认证服务：`http://localhost:8060/doc.html`
   - 图书服务：`http://localhost:8070/doc.html`
+  - 购物车服务：`http://localhost:8083/doc.html`
   - 订单服务：`http://localhost:8050/doc.html`
 
 ## 说明文档
@@ -225,6 +232,7 @@ for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
 - [说明文档/BookMall-基础设施搭建说明.md](/D:/workspace_idea/BookMall/说明文档/BookMall-基础设施搭建说明.md)
 - [说明文档/BookMall-auth说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-auth说明文档.md)
 - [说明文档/BookMall-book说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-book说明文档.md)
+- [说明文档/BookMall-cart说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-cart说明文档.md)
 - [说明文档/BookMall-gateway说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-gateway说明文档.md)
 - [说明文档/BookMall-order说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-order说明文档.md)
 
@@ -232,17 +240,11 @@ for i in 1 2 3; do curl http://localhost:8080/api/books; echo; done
 
 ### 已完成
 
-- 项目基础架构搭建（3 业务服务 + 网关 + 公共模块）
+- 项目基础架构搭建（4 业务服务 + 网关 + 公共模块）
 - 全部服务接入 Nacos
 - Gateway 路由 + JWT 统一鉴权 + 用户身份透传
 - 订单服务 OpenFeign 下单 + 越权校验
 - 图书服务 CRUD + 分页 + 平铺分类
-- 前端登录/图书/订单主链路联通
+- 购物车服务加入、查询、修改、删除、清空、结算下单
+- 前端登录/图书/购物车/订单主链路联通
 - 文档体系整理
-
-### 待继续
-
-- RabbitMQ 异步通知
-- Seata 分布式事务
-- 日志和链路追踪进一步完善
-- 更完整的企业级部署脚本

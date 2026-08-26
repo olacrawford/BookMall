@@ -27,9 +27,12 @@
         <div class="cover">{{ (book.title || 'BK').slice(0, 2) }}</div>
         <h4>{{ book.title }}</h4>
         <p>{{ book.author || '匿名作者' }}</p>
-        <div class="row">
+        <div class="row book-row">
           <strong>￥{{ book.price }}</strong>
-          <button class="primary" type="button" @click="openBuy(book)">立即购买</button>
+          <div class="book-actions">
+            <button class="ghost" type="button" @click="addToCart(book)">加入购物车</button>
+            <button class="primary" type="button" @click="openBuy(book)">立即购买</button>
+          </div>
         </div>
       </article>
     </div>
@@ -82,7 +85,7 @@
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
-import { bookApi, orderApi } from '../api/bookmall'
+import { bookApi, cartApi, orderApi } from '../api/bookmall'
 import { getCurrentUser } from '../utils/session'
 
 const books = ref([])
@@ -156,6 +159,20 @@ function closeBuy() {
   buyingBook.value = null
 }
 
+async function addToCart(book) {
+  if (!getCurrentUser()?.userId) {
+    error.value = '请先登录'
+    return
+  }
+  try {
+    await cartApi.add({ bookId: book.id, quantity: 1, selected: true })
+    error.value = ''
+    notice.value = `已加入购物车：${book.title}`
+  } catch (e) {
+    error.value = e.message || '加入购物车失败'
+  }
+}
+
 async function submitOrder() {
   if (!buyingBook.value) return
   if (!getCurrentUser()?.userId) {
@@ -193,6 +210,16 @@ onMounted(() => {
 .inline-form {
   display: flex;
   gap: 0.5rem;
+}
+
+.book-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.book-row {
+  align-items: center;
 }
 
 .inline-form input {
@@ -271,6 +298,11 @@ onMounted(() => {
 
   .inline-form input {
     width: 100%;
+  }
+
+  .book-row {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 </style>

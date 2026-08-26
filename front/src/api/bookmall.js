@@ -25,6 +25,24 @@ export const bookApi = {
   }
 }
 
+export const cartApi = {
+  list() {
+    return http.get('/api/cart').then(unwrapResult)
+  },
+  add(payload) {
+    return http.post('/api/cart', payload).then(unwrapResult)
+  },
+  update(id, payload) {
+    return http.put(`/api/cart/${id}`, payload).then(unwrapResult)
+  },
+  remove(id) {
+    return http.delete(`/api/cart/${id}`).then(unwrapResult)
+  },
+  clear() {
+    return http.delete('/api/cart').then(unwrapResult)
+  }
+}
+
 export const orderApi = {
   list() {
     return http.get('/api/orders').then(unwrapResult)
@@ -34,6 +52,9 @@ export const orderApi = {
   },
   create(payload) {
     return http.post('/api/orders', payload).then(unwrapResult)
+  },
+  createFromCart(payload) {
+    return http.post('/api/orders/from-cart', payload).then(unwrapResult)
   },
   cancel(id) {
     return http.put(`/api/orders/${id}/cancel`).then(unwrapResult)
