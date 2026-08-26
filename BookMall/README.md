@@ -173,7 +173,9 @@ docker exec -it redis redis-cli --scan --pattern 'category*'
 - 登录 / 注册页
 - 登录后进入首页总览
 - 图书中心：分页列表 + 分类下拉筛选 + 关键字搜索 + 立即购买
-- 订单中心：订单列表、详情、取消、超时自动关单
+- 收货地址页：新增、编辑、删除、设置默认地址
+- 立即购买 / 购物车结算支持从已保存地址带入收货信息
+- 订单中心：订单列表、详情、支付、取消、确认收货、超时自动关单
 
 ### 后端基础能力
 
@@ -184,7 +186,7 @@ docker exec -it redis redis-cli --scan --pattern 'category*'
 - 统一 `Result` 返回体
 - 全局异常处理
 - JWT 登录态 + BCrypt 密码加密
-- Auth 收货地址管理
+- Auth 收货地址管理接口
 
 ## 关键实现
 

@@ -68,6 +68,15 @@
             <input v-model.number="orderForm.quantity" type="number" min="1" />
           </label>
           <label>
+            <span>收货地址</span>
+            <select v-model="selectedAddressId" @change="applyAddress">
+              <option :value="null">手填收货信息</option>
+              <option v-for="address in addresses" :key="address.id" :value="address.id">
+                {{ addressLabel(address) }}
+              </option>
+            </select>
+          </label>
+          <label>
             <span>收货人</span>
             <input v-model="orderForm.receiverName" placeholder="收货人姓名" />
           </label>
@@ -88,7 +97,7 @@
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
-import { bookApi, cartApi, orderApi, stockApi } from '../api/bookmall'
+import { addressApi, bookApi, cartApi, orderApi, stockApi } from '../api/bookmall'
 import { getCurrentUser } from '../utils/session'
 
 const books = ref([])
@@ -102,6 +111,8 @@ const notice = ref('')
 const loading = ref(false)
 const categories = ref([])
 const selectedCategoryId = ref(null)
+const addresses = ref([])
+const selectedAddressId = ref(null)
 const buyingBook = ref(null)
 const orderForm = reactive({ quantity: 1, receiverName: '', receiverPhone: '', receiverAddress: '' })
 const stocksById = ref({})
@@ -165,6 +176,35 @@ async function loadCategories() {
   }
 }
 
+async function loadAddresses() {
+  try {
+    const data = await addressApi.list()
+    addresses.value = Array.isArray(data) ? data : []
+  } catch {
+    addresses.value = []
+  }
+}
+
+function addressLabel(address) {
+  const full = [address.province, address.city, address.district, address.detailAddress].filter(Boolean).join(' ')
+  return `${address.receiverName} · ${full}`
+}
+
+function applyAddress() {
+  const address = addresses.value.find((item) => item.id === selectedAddressId.value)
+  if (!address) {
+    orderForm.receiverName = ''
+    orderForm.receiverPhone = ''
+    orderForm.receiverAddress = ''
+    return
+  }
+  orderForm.receiverName = address.receiverName
+  orderForm.receiverPhone = address.receiverPhone
+  orderForm.receiverAddress = [address.province, address.city, address.district, address.detailAddress]
+    .filter(Boolean)
+    .join(' ')
+}
+
 function goPage(p) {
   if (p < 1 || p > pages.value) return
   pageNum.value = p
@@ -185,7 +225,9 @@ function openBuy(book) {
   orderForm.receiverName = ''
   orderForm.receiverPhone = ''
   orderForm.receiverAddress = ''
+  selectedAddressId.value = null
   error.value = ''
+  loadAddresses()
 }
 
 function closeBuy() {

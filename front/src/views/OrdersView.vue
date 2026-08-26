@@ -22,6 +22,7 @@
             <button class="ghost" type="button" @click="loadDetail(order.id)">详情</button>
             <button v-if="order.status === 0" class="primary" type="button" @click="payOrder(order.id)">立即支付</button>
             <button v-if="order.status === 0" class="ghost" type="button" @click="cancelOrder(order.id)">取消订单</button>
+            <button v-if="order.status === 1" class="primary" type="button" @click="completeOrder(order.id)">确认收货</button>
           </div>
         </article>
       </div>
@@ -95,6 +96,16 @@ async function cancelOrder(id) {
     await loadOrders()
   } catch (e) {
     error.value = e.message || '取消订单失败'
+  }
+}
+
+async function completeOrder(id) {
+  try {
+    await orderApi.complete(id)
+    detail.value = null
+    await loadOrders()
+  } catch (e) {
+    error.value = e.message || '确认收货失败'
   }
 }
 

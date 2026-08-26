@@ -10,6 +10,24 @@ export const authApi = {
   }
 }
 
+export const addressApi = {
+  list() {
+    return http.get('/api/auth/addresses').then(unwrapResult)
+  },
+  create(payload) {
+    return http.post('/api/auth/addresses', payload).then(unwrapResult)
+  },
+  update(id, payload) {
+    return http.put(`/api/auth/addresses/${id}`, payload).then(unwrapResult)
+  },
+  setDefault(id) {
+    return http.put(`/api/auth/addresses/${id}/default`).then(unwrapResult)
+  },
+  remove(id) {
+    return http.delete(`/api/auth/addresses/${id}`).then(unwrapResult)
+  }
+}
+
 export const bookApi = {
   list() {
     return http.get('/api/books').then(unwrapResult)
@@ -64,6 +82,9 @@ export const orderApi = {
   },
   cancel(id) {
     return http.put(`/api/orders/${id}/cancel`).then(unwrapResult)
+  },
+  complete(id) {
+    return http.put(`/api/orders/${id}/complete`).then(unwrapResult)
   }
 }
 

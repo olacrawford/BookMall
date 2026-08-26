@@ -481,6 +481,7 @@ Authorization: Bearer xxxxx.yyyyy.zzzzz
 - 可登录
 - 可发 token
 - 可管理当前用户收货地址
+- 前端 [AddressView.vue](D:/workspace_idea/BookMall/front/src/views/AddressView.vue) 已接入地址管理页，并支持在图书下单和购物车结算时带入地址
 
 ## 12. 维护规则
 

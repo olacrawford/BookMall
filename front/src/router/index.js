@@ -4,6 +4,7 @@ import LoginView from '../views/LoginView.vue'
 import BooksView from '../views/BooksView.vue'
 import CartView from '../views/CartView.vue'
 import OrdersView from '../views/OrdersView.vue'
+import AddressView from '../views/AddressView.vue'
 import { isLoggedIn } from '../utils/session'
 
 const routes = [
@@ -12,7 +13,8 @@ const routes = [
   { path: '/home', component: HomeView, meta: { auth: true } },
   { path: '/books', component: BooksView, meta: { auth: true } },
   { path: '/cart', component: CartView, meta: { auth: true } },
-  { path: '/orders', component: OrdersView, meta: { auth: true } }
+  { path: '/orders', component: OrdersView, meta: { auth: true } },
+  { path: '/addresses', component: AddressView, meta: { auth: true } }
 ]
 
 const router = createRouter({

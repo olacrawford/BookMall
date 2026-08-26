@@ -71,6 +71,15 @@
 
         <form class="form-grid" @submit.prevent="submitCheckout">
           <label>
+            <span>收货地址</span>
+            <select v-model="selectedAddressId" @change="applyAddress">
+              <option :value="null">手填收货信息</option>
+              <option v-for="address in addresses" :key="address.id" :value="address.id">
+                {{ addressLabel(address) }}
+              </option>
+            </select>
+          </label>
+          <label>
             <span>收货人</span>
             <input v-model="checkoutForm.receiverName" placeholder="收货人姓名" />
           </label>
@@ -93,7 +102,7 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { bookApi, cartApi, orderApi, stockApi } from '../api/bookmall'
+import { addressApi, bookApi, cartApi, orderApi, stockApi } from '../api/bookmall'
 import { getCurrentUser } from '../utils/session'
 
 const cartItems = ref([])
@@ -104,6 +113,8 @@ const notice = ref('')
 const loading = ref(false)
 const checkoutOpen = ref(false)
 const checkoutSubmitting = ref(false)
+const addresses = ref([])
+const selectedAddressId = ref(null)
 const checkoutForm = reactive({ receiverName: '', receiverPhone: '', receiverAddress: '' })
 
 const selectedItems = computed(() => cartItems.value.filter((item) => item.selected === 1))
@@ -127,6 +138,35 @@ function coverText(item) {
 function subtotal(item) {
   const price = Number(bookOf(item)?.price || 0)
   return price * item.quantity
+}
+
+async function loadAddresses() {
+  try {
+    const data = await addressApi.list()
+    addresses.value = Array.isArray(data) ? data : []
+  } catch {
+    addresses.value = []
+  }
+}
+
+function addressLabel(address) {
+  const full = [address.province, address.city, address.district, address.detailAddress].filter(Boolean).join(' ')
+  return `${address.receiverName} · ${full}`
+}
+
+function applyAddress() {
+  const address = addresses.value.find((item) => item.id === selectedAddressId.value)
+  if (!address) {
+    checkoutForm.receiverName = ''
+    checkoutForm.receiverPhone = ''
+    checkoutForm.receiverAddress = ''
+    return
+  }
+  checkoutForm.receiverName = address.receiverName
+  checkoutForm.receiverPhone = address.receiverPhone
+  checkoutForm.receiverAddress = [address.province, address.city, address.district, address.detailAddress]
+    .filter(Boolean)
+    .join(' ')
 }
 
 async function loadCart() {
@@ -256,7 +296,12 @@ function openCheckout() {
     return
   }
   error.value = ''
+  selectedAddressId.value = null
+  checkoutForm.receiverName = ''
+  checkoutForm.receiverPhone = ''
+  checkoutForm.receiverAddress = ''
   checkoutOpen.value = true
+  loadAddresses()
 }
 
 function closeCheckout() {
