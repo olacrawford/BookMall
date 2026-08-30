@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bookmall.local/schema/tool-result.json",
+  "title": "Domain Tool Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["toolName", "success", "traceId", "latencyMs", "data"],
+  "properties": {
+    "toolName": {"type": "string"},
+    "success": {"type": "boolean"},
+    "traceId": {"type": "string"},
+    "latencyMs": {"type": "integer", "minimum": 0},
+    "errorCode": {"type": ["string", "null"]},
+    "data": {"type": ["object", "array", "null"]}
+  }
+}

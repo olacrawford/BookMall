@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bookmall.local/schema/tool-invocation.json",
+  "title": "Read-only Domain Tool Invocation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["toolName", "traceId", "ticketId", "arguments"],
+  "properties": {
+    "toolName": {
+      "type": "string",
+      "enum": ["query_order", "query_logistics", "query_delivery_proof", "query_user_risk", "query_after_sale_rule"]
+    },
+    "traceId": {"type": "string", "minLength": 8, "maxLength": 128},
+    "ticketId": {"type": "integer", "minimum": 1},
+    "arguments": {"type": "object", "additionalProperties": false, "minProperties": 1}
+  }
+}
