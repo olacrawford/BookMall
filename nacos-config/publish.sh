@@ -3,7 +3,7 @@
 #
 # 用法：在 nacos-config 目录下执行
 #   bash publish.sh
-# 或（Windows Git Bash / WSL）：
+# 或在 macOS / Linux Bash 下：
 #   ./publish.sh
 #
 # 说明：把当前目录下的 auth.yaml / book.yaml / cart.yaml / stock.yaml / order.yaml / payment.yaml / gateway.yaml

@@ -84,10 +84,19 @@ Browser
 
 ### 1. 基础环境
 
-- Windows + IDEA 启动 Java 服务
-- Docker 启动 MySQL、Nacos、Redis、RabbitMQ
+- macOS（Apple Silicon）+ IDEA 启动 Java 服务
+- Maven 使用 Homebrew 默认安装：`/opt/homebrew/opt/maven`
+- Docker Desktop 启动 MySQL、Nacos、Redis、RabbitMQ
 
 ### 2. 启动基础设施
+
+项目根目录执行以下命令启动全部基础设施：
+
+```bash
+docker compose -f docker-compose.infra.yml up -d
+```
+
+各组件地址如下：
 
 - MySQL: `localhost:3306`
 - Nacos: `localhost:8848`

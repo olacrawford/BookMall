@@ -25,7 +25,7 @@
 
 启动类：
 
-- [OrderApplication.java](D:/workspace_idea/BookMall/BookMall/bookmall-order/src/main/java/com/bookmall/order/OrderApplication.java)
+- [OrderApplication.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-order/src/main/java/com/bookmall/order/OrderApplication.java)
 
 业务代码：
 
@@ -56,7 +56,7 @@
 - 超时任务单轮处理量：`bookmall.order.close-batch-size`，默认 `500` 条
 - 默认 OpenFeign 连接超时 3 秒、读取超时 5 秒
 
-数据库连接、RabbitMQ 和 OpenFeign 配置在 [nacos-config/order.yaml](D:/workspace_idea/BookMall/nacos-config/order.yaml) 中维护，RabbitMQ 配置位于 `spring.rabbitmq`。
+数据库连接、RabbitMQ 和 OpenFeign 配置在 [nacos-config/order.yaml](/Users/ibupro/workspace/workspace_idea/BookMall/nacos-config/order.yaml) 中维护，RabbitMQ 配置位于 `spring.rabbitmq`。
 
 ## 4. 当前接口
 
@@ -141,17 +141,17 @@
 
 ## 6. 服务间调用
 
-- [BookClient.java](D:/workspace_idea/BookMall/BookMall/bookmall-order/src/main/java/com/bookmall/order/client/BookClient.java) 使用 OpenFeign
+- [BookClient.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-order/src/main/java/com/bookmall/order/client/BookClient.java) 使用 OpenFeign
 - 服务名：`book`
 - 调用接口：`GET /books/{id}`
 - 返回体转换为订单模块自己的 `BookSnapshot`
 
-- [CartClient.java](D:/workspace_idea/BookMall/BookMall/bookmall-order/src/main/java/com/bookmall/order/client/CartClient.java) 使用 OpenFeign
+- [CartClient.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-order/src/main/java/com/bookmall/order/client/CartClient.java) 使用 OpenFeign
 - 服务名：`cart`
 - 调用接口：`GET /cart/selected`
 - 返回体转换为订单模块自己的 `CartItemSnapshot`
 
-- [StockClient.java](D:/workspace_idea/BookMall/BookMall/bookmall-order/src/main/java/com/bookmall/order/client/StockClient.java) 使用 OpenFeign
+- [StockClient.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-order/src/main/java/com/bookmall/order/client/StockClient.java) 使用 OpenFeign
 - 服务名：`stock`
 - 调用接口：`POST /stock/deduct`
 - 只在创建订单时同步预占库存，保证下单前能确认可售库存充足
@@ -171,6 +171,28 @@
 - `markPaid` 按订单状态做幂等：已支付或已取消的消息不会重复确认库存
 - 订单支付成功后，`OrderEventPublisher` 发布 `OrderStockEvent` 到 `bookmall.order.stock.exchange`
 - 库存服务消费确认或释放事件，异步处理 `locked_stock`
+
+## 本地启动（macOS）
+
+1. 启动基础设施：
+
+```bash
+docker compose -f docker-compose.infra.yml up -d
+```
+
+2. 发布 Nacos 配置（首次运行或配置变更后）：
+
+```bash
+cd nacos-config
+bash publish.sh
+```
+
+3. 安装公共模块并启动本服务：
+
+```bash
+mvn -f BookMall/pom.xml -DskipTests install
+mvn -f BookMall/pom.xml -pl bookmall-order spring-boot:run
+```
 
 ## 8. 验证方式
 

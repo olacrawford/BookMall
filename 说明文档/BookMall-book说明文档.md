@@ -18,13 +18,13 @@
 
 启动类：
 
-- [BookApplication.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/BookApplication.java)
+- [BookApplication.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/BookApplication.java)
 
 配置类：
 
-- [RedisConfig.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/config/RedisConfig.java)
-- [SentinelConfig.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/config/SentinelConfig.java)
-- [MybatisPlusConfig.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/config/MybatisPlusConfig.java)
+- [RedisConfig.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/config/RedisConfig.java)
+- [SentinelConfig.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/config/SentinelConfig.java)
+- [MybatisPlusConfig.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/config/MybatisPlusConfig.java)
 
 业务代码：
 
@@ -47,7 +47,7 @@
 - MySQL：`localhost:3306/bookmall`
 - Redis：`localhost:6379`
 
-数据库连接、Redis 连接等信息在 [nacos-config/book.yaml](D:/workspace_idea/BookMall/nacos-config/book.yaml) 中维护。
+数据库连接、Redis 连接等信息在 [nacos-config/book.yaml](/Users/ibupro/workspace/workspace_idea/BookMall/nacos-config/book.yaml) 中维护。
 
 ## 4. 当前接口
 
@@ -93,7 +93,7 @@
 
 ## 7. Sentinel 限流
 
-通过 [SentinelConfig.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/config/SentinelConfig.java) 配置四条 QPS 规则：
+通过 [SentinelConfig.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/config/SentinelConfig.java) 配置四条 QPS 规则：
 
 - `listBooks`（`GET /books`）：50 QPS
 - `pageBooks`（`GET /books/page`）：80 QPS
@@ -101,6 +101,28 @@
 - `listCategories`（`GET /books/categories`）：80 QPS
 
 超过阈值时分别返回对应的 429 友好提示，正常业务访问不会误伤。
+
+## 本地启动（macOS）
+
+1. 启动基础设施：
+
+```bash
+docker compose -f docker-compose.infra.yml up -d
+```
+
+2. 发布 Nacos 配置（首次运行或配置变更后）：
+
+```bash
+cd nacos-config
+bash publish.sh
+```
+
+3. 安装公共模块并启动本服务：
+
+```bash
+mvn -f BookMall/pom.xml -DskipTests install
+mvn -f BookMall/pom.xml -pl bookmall-book spring-boot:run
+```
 
 ## 8. 验证方式
 

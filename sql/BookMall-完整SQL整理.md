@@ -4,7 +4,7 @@
 
 ## 1. 使用说明
 
-- 新环境：直接执行「完整初始化 SQL」，等价于运行 `sql/sql.txt`。
+- 新环境：先启动 MySQL（`docker compose -f docker-compose.infra.yml up -d`），再执行「完整初始化 SQL」，等价于运行 `sql/sql.txt`。
 - 已有环境：按 `001 -> 002 -> 003 -> 004 -> 005` 顺序执行对应增量 SQL。
 - 增量脚本大多可重复执行，但 `004` 和 `005` 属于表结构变更，已有环境执行一次即可。
 - 项目代码中的核心 Mapper SQL 单独整理在最后，供理解下单、加购、库存流程使用。
@@ -12,8 +12,8 @@
 执行示例：
 
 ```bash
-mysql -h127.0.0.1 -uroot -p < sql/sql.txt
-mysql -h127.0.0.1 -uroot -p < sql/updates/001_cart_address_stock.sql
+docker exec -i mysql mysql -uroot -p123456 < sql/sql.txt
+docker exec -i mysql mysql -uroot -p123456 < sql/updates/001_cart_address_stock.sql
 ```
 
 ## 2. 完整初始化 SQL

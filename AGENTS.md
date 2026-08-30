@@ -17,16 +17,19 @@ The Git root is this directory.
 - `sql/sql.txt`: complete MySQL schema and seed data, including all 9 tables.
 - `sql/updates/`: incremental SQL scripts for existing environments.
 - `nacos-config/`: per-service config and `publish.sh`.
+- `docker-compose.infra.yml`: local MySQL, Nacos, Redis, and RabbitMQ for macOS / Docker Desktop.
 - `说明文档/`: detailed module and deployment docs.
 
 ## Build, Test, and Development Commands
 
+Start the local infrastructure with `docker compose -f docker-compose.infra.yml up -d`. It runs MySQL, Nacos, Redis, and RabbitMQ on the same `localhost` ports used by `nacos-config/*.yaml`.
+
 Use `mvn -f BookMall/pom.xml -q clean package` to compile all backend modules, and `mvn -f BookMall/pom.xml -q test` to run backend tests. Run `mvn -f BookMall/pom.xml -DskipTests install` once, then start one service with `mvn -f BookMall/pom.xml -pl bookmall-auth spring-boot:run`; replace the module name as needed. Do not use `-am` with `spring-boot:run`, because it also runs the parent POM, which has no main class. Start auth, book, cart, stock, order, and payment before the gateway.
 
-When starting `bookmall-book` on Windows, if Sentinel cannot write `C:\logs\csp`, point it into the workspace:
+When starting `bookmall-book`, if Sentinel cannot write its default log directory, point it into the workspace:
 
 ```bash
-mvn -f BookMall/pom.xml -pl bookmall-book spring-boot:run '-Dspring-boot.run.jvmArguments=-Dcsp.sentinel.log.dir=D:/workspace_idea/BookMall/logs/sentinel'
+mvn -f BookMall/pom.xml -pl bookmall-book spring-boot:run '-Dspring-boot.run.jvmArguments=-Dcsp.sentinel.log.dir=/Users/ibupro/workspace/workspace_idea/BookMall/logs/sentinel'
 ```
 
 For frontend, run `cd front && npm install && npm run dev` to start Vue at `http://localhost:5173`, or `npm run build` to produce the build. Apply database changes by running `sql/sql.txt` and `sql/updates/*.sql` against MySQL. Publish config changes with `cd nacos-config && bash publish.sh`.
@@ -52,6 +55,4 @@ Update `README.md`, `说明文档/`, `sql/sql.txt`, `nacos-config/*.yaml`, and t
 ## Security & Configuration
 
 Keep real credentials out of Git. Keep local ports and service names in `application.yml`; DB, Redis, and JWT values belong in `nacos-config/*.yaml`. Never let downstream services trust client-supplied `X-User-Id`; only the gateway filter should set it.
-
-
 

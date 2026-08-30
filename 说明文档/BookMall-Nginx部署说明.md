@@ -26,7 +26,7 @@
 ### 2.1 Nginx 配置文件
 
 文件：
-- [nginx.conf](D:/workspace_idea/BookMall/front/nginx.conf)
+- [nginx.conf](/Users/ibupro/workspace/workspace_idea/BookMall/front/nginx.conf)
 
 作用：
 - 托管前端 `dist` 静态文件
@@ -42,7 +42,7 @@
 ### 2.2 前端 Dockerfile
 
 文件：
-- [Dockerfile](D:/workspace_idea/BookMall/front/Dockerfile)
+- [Dockerfile](/Users/ibupro/workspace/workspace_idea/BookMall/front/Dockerfile)
 
 作用：
 - 基于 `nginx:1.27-alpine` 构建前端镜像
@@ -52,19 +52,19 @@
 ### 2.3 Docker Compose 文件
 
 文件：
-- [docker-compose.nginx.yml](D:/workspace_idea/BookMall/docker-compose.nginx.yml)
+- [docker-compose.nginx.yml](/Users/ibupro/workspace/workspace_idea/BookMall/docker-compose.nginx.yml)
 
 作用：
 - 一条命令启动前端 Nginx 容器
 - 暴露宿主机 `80` 端口
-- 通过 `host.docker.internal` 回源到 Windows 上运行的 Gateway
+- 通过 `host.docker.internal` 回源到 macOS 上运行的 Gateway
 
 ## 3. 已修改文件
 
 ### 3.1 前端 package.json
 
 文件：
-- [package.json](D:/workspace_idea/BookMall/front/package.json)
+- [package.json](/Users/ibupro/workspace/workspace_idea/BookMall/front/package.json)
 
 新增脚本：
 - `build:docker`
@@ -96,9 +96,9 @@
 
 ### 5.2 打包前端
 
-在 `D:\workspace_idea\BookMall\front` 目录执行：
+在 `/Users/ibupro/workspace/workspace_idea/BookMall/front` 目录执行：
 
-```powershell
+```bash
 npm run build
 ```
 
@@ -107,9 +107,9 @@ npm run build
 
 ### 5.3 启动 Nginx 容器
 
-在 `D:\workspace_idea\BookMall` 目录执行：
+在 `/Users/ibupro/workspace/workspace_idea/BookMall` 目录执行：
 
-```powershell
+```bash
 docker compose -f docker-compose.nginx.yml up -d --build
 ```
 
@@ -161,7 +161,7 @@ http://localhost
 
 ## 7. 当前方案说明
 
-因为你的 Java 微服务现在运行在 Windows IDEA，而不是全部在 Docker 容器中，所以 Nginx 容器不能直接通过容器名访问 Gateway。
+因为你的 Java 微服务现在运行在 macOS 上的 IDEA，而不是全部在 Docker 容器中，所以 Nginx 容器不能直接通过容器名访问 Gateway。
 
 因此这里使用：
 - `host.docker.internal:8080`
@@ -170,4 +170,4 @@ http://localhost
 - Nginx 容器访问宿主机上的 `8080`
 - 宿主机上的 `8080` 就是你 IDEA 启动的 Gateway
 
-这非常适合你当前“Windows + WSL + Docker + IDEA”的开发结构。
+这非常适合你当前“macOS + Docker Desktop + IDEA”的开发结构。

@@ -14,9 +14,9 @@
 
 ## 2. 当前项目结构
 
-- [GatewayApplication.java](D:/workspace_idea/BookMall/BookMall/bookmall-gateway/src/main/java/com/bookmall/gateway/GatewayApplication.java)：启动类
-- [AuthGlobalFilter.java](D:/workspace_idea/BookMall/BookMall/bookmall-gateway/src/main/java/com/bookmall/gateway/filter/AuthGlobalFilter.java)：JWT 鉴权与用户身份透传
-- [application.yml](D:/workspace_idea/BookMall/BookMall/bookmall-gateway/src/main/resources/application.yml)：端口、Nacos、路由、CORS
+- [GatewayApplication.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-gateway/src/main/java/com/bookmall/gateway/GatewayApplication.java)：启动类
+- [AuthGlobalFilter.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-gateway/src/main/java/com/bookmall/gateway/filter/AuthGlobalFilter.java)：JWT 鉴权与用户身份透传
+- [application.yml](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-gateway/src/main/resources/application.yml)：端口、Nacos、路由、CORS
 
 ## 3. 配置说明
 
@@ -97,6 +97,28 @@ X-User-Id: <userId>
 - `spring-cloud-starter-alibaba-nacos-config`
 - `spring-cloud-starter-loadbalancer`
 - `jjwt-api / jjwt-impl / jjwt-jackson`
+
+## 本地启动（macOS）
+
+1. 启动基础设施：
+
+```bash
+docker compose -f docker-compose.infra.yml up -d
+```
+
+2. 发布 Nacos 配置（首次运行或配置变更后）：
+
+```bash
+cd nacos-config
+bash publish.sh
+```
+
+3. 安装公共模块并启动本服务：
+
+```bash
+mvn -f BookMall/pom.xml -DskipTests install
+mvn -f BookMall/pom.xml -pl bookmall-gateway spring-boot:run
+```
 
 ## 8. 验证方式
 

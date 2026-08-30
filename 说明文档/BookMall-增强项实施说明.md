@@ -16,10 +16,10 @@
 
 ### 2.1 实现方式
 
-- [RedisConfig.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/config/RedisConfig.java) 提供基于 Redis 的 `CacheManager`
-- [BookApplication.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/BookApplication.java) 开启 `@EnableCaching`
-- [BookServiceImpl.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/service/impl/BookServiceImpl.java) 在 `getBookById()` 上使用 `@Cacheable(cacheNames = "book")`
-- [CategoryServiceImpl.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/service/impl/CategoryServiceImpl.java) 在分类查询上使用 `@Cacheable(cacheNames = "category")`
+- [RedisConfig.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/config/RedisConfig.java) 提供基于 Redis 的 `CacheManager`
+- [BookApplication.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/BookApplication.java) 开启 `@EnableCaching`
+- [BookServiceImpl.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/service/impl/BookServiceImpl.java) 在 `getBookById()` 上使用 `@Cacheable(cacheNames = "book")`
+- [CategoryServiceImpl.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/service/impl/CategoryServiceImpl.java) 在分类查询上使用 `@Cacheable(cacheNames = "category")`
 - 缓存统一 30 分钟过期，查询结果为 `null` 时不写入缓存
 - 新增、修改、删除图书使用 `@Caching` 清理 `book` 和 `books` 两个缓存空间
 
@@ -34,9 +34,9 @@
 
 ### 3.1 实现方式
 
-- [SentinelConfig.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/config/SentinelConfig.java) 使用代码定义流控规则
-- [BookServiceImpl.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/service/impl/BookServiceImpl.java) 在 `listBooks()`、`pageBooks()`、`getBookById()` 上使用 `@SentinelResource`
-- [CategoryServiceImpl.java](D:/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/service/impl/CategoryServiceImpl.java) 在 `listCategories()` 上使用 `@SentinelResource`
+- [SentinelConfig.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/config/SentinelConfig.java) 使用代码定义流控规则
+- [BookServiceImpl.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/service/impl/BookServiceImpl.java) 在 `listBooks()`、`pageBooks()`、`getBookById()` 上使用 `@SentinelResource`
+- [CategoryServiceImpl.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-book/src/main/java/com/bookmall/book/service/impl/CategoryServiceImpl.java) 在 `listCategories()` 上使用 `@SentinelResource`
 
 ### 3.2 当前规则
 
@@ -74,6 +74,28 @@
 - `bookmall-stock`：库存预占失败、释放幂等、确认幂等
 - `bookmall-payment`：支付成功发布事件、MQ 发送失败回滚
 - 测试依赖使用 `spring-boot-starter-test`，可运行 `mvn -pl bookmall-auth,bookmall-book,bookmall-cart,bookmall-gateway,bookmall-order,bookmall-stock,bookmall-payment -am test`
+
+## 本地启动（macOS）
+
+1. 启动基础设施：
+
+```bash
+docker compose -f docker-compose.infra.yml up -d
+```
+
+2. 发布 Nacos 配置（首次运行或配置变更后）：
+
+```bash
+cd nacos-config
+bash publish.sh
+```
+
+3. 安装公共模块，并按需启动对应模块（以 book 为例）：
+
+```bash
+mvn -f BookMall/pom.xml -DskipTests install
+mvn -f BookMall/pom.xml -pl bookmall-book spring-boot:run
+```
 
 ## 6. 验证方式
 

@@ -1,0 +1,91 @@
+# Local infrastructure for macOS (Apple Silicon) + Docker Desktop.
+# Uses arm64-compatible images and named volumes so data survives restarts.
+# Ports and accounts match nacos-config/*.yaml:
+#   MySQL root / 123456, RabbitMQ admin / 123456.
+name: bookmall-infra
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+      TZ: Asia/Shanghai
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  nacos:
+    image: nacos/nacos-server:v2.5.4
+    container_name: nacos
+    restart: unless-stopped
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+    environment:
+      MODE: standalone
+      NACOS_AUTH_ENABLE: "false"
+      PREFER_HOST_MODE: ip
+      JVM_XMS: 256m
+      JVM_XMX: 512m
+    volumes:
+      - nacos-data:/home/nacos/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8848/nacos/v1/console/health/readiness || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+
+  redis:
+    image: redis:8.8
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:4.3.5-management
+    container_name: rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: "123456"
+      TZ: Asia/Shanghai
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  mysql-data:
+    name: mysql-data
+  nacos-data:
+    name: nacos-data
+  redis-data:
+    name: redis-data
+  rabbitmq-data:
+    name: rabbitmq-data

@@ -16,7 +16,7 @@
 
 启动类：
 
-- [StockApplication.java](D:/workspace_idea/BookMall/BookMall/bookmall-stock/src/main/java/com/bookmall/stock/StockApplication.java)
+- [StockApplication.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-stock/src/main/java/com/bookmall/stock/StockApplication.java)
 
 业务代码：
 
@@ -40,7 +40,7 @@
 - MySQL：`localhost:3306/bookmall`
 - RabbitMQ：`localhost:5672`，账号 `admin` / `123456`
 
-数据库连接和 RabbitMQ 配置在 [nacos-config/stock.yaml](D:/workspace_idea/BookMall/nacos-config/stock.yaml) 中维护。
+数据库连接和 RabbitMQ 配置在 [nacos-config/stock.yaml](/Users/ibupro/workspace/workspace_idea/BookMall/nacos-config/stock.yaml) 中维护。
 
 ## 4. 当前接口
 
@@ -132,9 +132,31 @@
 
 当前前端已接入库存提示：
 
-- [BooksView.vue](D:/workspace_idea/BookMall/front/src/views/BooksView.vue)：展示可售库存，缺货时禁用购买入口
-- [CartView.vue](D:/workspace_idea/BookMall/front/src/views/CartView.vue)：购物车数量超过库存时提示，并禁止提交结算
-- [bookmall.js](D:/workspace_idea/BookMall/front/src/api/bookmall.js)：`stockApi` 请求封装
+- [BooksView.vue](/Users/ibupro/workspace/workspace_idea/BookMall/front/src/views/BooksView.vue)：展示可售库存，缺货时禁用购买入口
+- [CartView.vue](/Users/ibupro/workspace/workspace_idea/BookMall/front/src/views/CartView.vue)：购物车数量超过库存时提示，并禁止提交结算
+- [bookmall.js](/Users/ibupro/workspace/workspace_idea/BookMall/front/src/api/bookmall.js)：`stockApi` 请求封装
+
+## 本地启动（macOS）
+
+1. 启动基础设施：
+
+```bash
+docker compose -f docker-compose.infra.yml up -d
+```
+
+2. 发布 Nacos 配置（首次运行或配置变更后）：
+
+```bash
+cd nacos-config
+bash publish.sh
+```
+
+3. 安装公共模块并启动本服务：
+
+```bash
+mvn -f BookMall/pom.xml -DskipTests install
+mvn -f BookMall/pom.xml -pl bookmall-stock spring-boot:run
+```
 
 ## 9. 验证方式
 

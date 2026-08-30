@@ -17,7 +17,7 @@
 
 启动类：
 
-- [PaymentApplication.java](D:/workspace_idea/BookMall/BookMall/bookmall-payment/src/main/java/com/bookmall/payment/PaymentApplication.java)
+- [PaymentApplication.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-payment/src/main/java/com/bookmall/payment/PaymentApplication.java)
 
 业务代码：
 
@@ -43,7 +43,7 @@
 - MySQL：`localhost:3306/bookmall`
 - RabbitMQ：`localhost:5672`，账号 `admin` / `123456`
 
-数据库连接和 RabbitMQ 配置在 [nacos-config/payment.yaml](D:/workspace_idea/BookMall/nacos-config/payment.yaml) 中维护。RabbitMQ 配置位于 `spring.rabbitmq`。
+数据库连接和 RabbitMQ 配置在 [nacos-config/payment.yaml](/Users/ibupro/workspace/workspace_idea/BookMall/nacos-config/payment.yaml) 中维护。RabbitMQ 配置位于 `spring.rabbitmq`。
 
 ## 4. 当前接口
 
@@ -114,8 +114,30 @@
 
 ## 9. 前端接入
 
-- [OrdersView.vue](D:/workspace_idea/BookMall/front/src/views/OrdersView.vue)：待支付订单显示“立即支付”，已支付订单支持“确认收货”
-- [bookmall.js](D:/workspace_idea/BookMall/front/src/api/bookmall.js)：`paymentApi` 请求封装
+- [OrdersView.vue](/Users/ibupro/workspace/workspace_idea/BookMall/front/src/views/OrdersView.vue)：待支付订单显示“立即支付”，已支付订单支持“确认收货”
+- [bookmall.js](/Users/ibupro/workspace/workspace_idea/BookMall/front/src/api/bookmall.js)：`paymentApi` 请求封装
+
+## 本地启动（macOS）
+
+1. 启动基础设施：
+
+```bash
+docker compose -f docker-compose.infra.yml up -d
+```
+
+2. 发布 Nacos 配置（首次运行或配置变更后）：
+
+```bash
+cd nacos-config
+bash publish.sh
+```
+
+3. 安装公共模块并启动本服务：
+
+```bash
+mvn -f BookMall/pom.xml -DskipTests install
+mvn -f BookMall/pom.xml -pl bookmall-payment spring-boot:run
+```
 
 ## 10. 验证方式
 

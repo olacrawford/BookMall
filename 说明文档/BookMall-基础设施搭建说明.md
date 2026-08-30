@@ -4,10 +4,12 @@
 
 当前项目运行在以下环境中：
 
-- Windows 启动 Java 微服务
-- WSL 使用 Docker Desktop 启动基础设施
-- MySQL、Nacos、Redis 运行在 Docker 容器中
+- macOS（Apple Silicon）启动 Java 微服务
+- Maven 使用 Homebrew 默认安装：`/opt/homebrew/opt/maven`
+- Docker Desktop 使用 arm64 镜像启动基础设施
+- MySQL、Nacos、Redis、RabbitMQ 运行在 Docker 容器中
 - Java 服务通过 `localhost` 访问 Docker 映射出来的端口
+- 一键启动：`docker compose -f docker-compose.infra.yml up -d`
 
 当前基础设施端口：
 
@@ -97,10 +99,10 @@ bash publish.sh
 - `listCategories`：80 QPS
 - 超限返回 429
 
-Windows 下如果 Sentinel 无法写 `C:\logs\csp`，启动 `bookmall-book` 时指定项目内日志目录：
+如果 Sentinel 无法写默认日志目录，启动 `bookmall-book` 时指定项目内日志目录：
 
 ```text
-mvn -o -s D:\workspace_idea\BookMall\.m2\settings.xml -f D:\workspace_idea\BookMall\BookMall\pom.xml -pl bookmall-book spring-boot:run '-Dspring-boot.run.jvmArguments=-Dcsp.sentinel.log.dir=D:/workspace_idea/BookMall/logs/sentinel'
+mvn -f BookMall/pom.xml -pl bookmall-book spring-boot:run '-Dspring-boot.run.jvmArguments=-Dcsp.sentinel.log.dir=/Users/ibupro/workspace/workspace_idea/BookMall/logs/sentinel'
 ```
 
 ### 3.5 RabbitMQ
@@ -123,10 +125,10 @@ mvn -o -s D:\workspace_idea\BookMall\.m2\settings.xml -f D:\workspace_idea\BookM
 
 RabbitMQ 连接配置位于 `nacos-config/payment.yaml`、`nacos-config/order.yaml` 和 `nacos-config/stock.yaml` 的 `spring.rabbitmq`。
 
-启动 RabbitMQ：
+启动 RabbitMQ（含管理台 `localhost:15672`）：
 
 ```bash
-docker start rabbitmq
+docker compose -f docker-compose.infra.yml up -d rabbitmq
 ```
 
 支付服务和订单服务都会声明同名交换机、队列和绑定，RabbitMQ 声明是幂等的，不依赖两个服务的严格启动顺序。
@@ -158,8 +160,8 @@ docker start rabbitmq
 常用 Maven 命令：
 
 ```text
-mvn -o -s D:\workspace_idea\BookMall\.m2\settings.xml -f D:\workspace_idea\BookMall\BookMall\pom.xml -DskipTests install
-mvn -o -s D:\workspace_idea\BookMall\.m2\settings.xml -f D:\workspace_idea\BookMall\BookMall\pom.xml -pl bookmall-auth spring-boot:run
+mvn -f BookMall/pom.xml -DskipTests install
+mvn -f BookMall/pom.xml -pl bookmall-auth spring-boot:run
 ```
 
 先执行 `install` 安装公共模块，再把 `bookmall-auth` 替换为其他模块名即可启动对应服务。不要对 `spring-boot:run` 使用 `-am`，否则会尝试在父工程上找启动类。

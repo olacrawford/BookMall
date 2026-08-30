@@ -29,7 +29,7 @@
 执行方式：
 
 ```bash
-mysql -h127.0.0.1 -uroot -p < sql/updates/001_cart_address_stock.sql
+docker exec -i mysql mysql -uroot -p123456 < sql/updates/001_cart_address_stock.sql
 ```
 
 ## 库存服务接入
@@ -61,7 +61,7 @@ mysql -h127.0.0.1 -uroot -p < sql/updates/001_cart_address_stock.sql
 执行方式：
 
 ```bash
-mysql -h127.0.0.1 -uroot -p < sql/updates/003_payment.sql
+docker exec -i mysql mysql -uroot -p123456 < sql/updates/003_payment.sql
 ```
 
 ## 订单超时与库存确认
@@ -81,7 +81,7 @@ mysql -h127.0.0.1 -uroot -p < sql/updates/003_payment.sql
 执行方式：
 
 ```bash
-mysql -h127.0.0.1 -uroot -p < sql/updates/004_order_expire_stock_confirm.sql
+docker exec -i mysql mysql -uroot -p123456 < sql/updates/004_order_expire_stock_confirm.sql
 ```
 
 ## 查询与并发优化
@@ -95,5 +95,5 @@ mysql -h127.0.0.1 -uroot -p < sql/updates/004_order_expire_stock_confirm.sql
 执行方式：
 
 ```bash
-mysql -h127.0.0.1 -uroot -p < sql/updates/005_optimization.sql
+docker exec -i mysql mysql -uroot -p123456 < sql/updates/005_optimization.sql
 ```

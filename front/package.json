@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:docker": "vite build && copy nginx.conf dist\\nginx.conf",
+    "build:docker": "vite build && cp nginx.conf dist/nginx.conf",
     "preview": "vite preview"
   },
   "dependencies": {

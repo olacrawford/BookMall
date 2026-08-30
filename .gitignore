@@ -19,3 +19,5 @@ logs/
 
 # Unused local folders
 META-INF/
+
+.codex/

@@ -18,7 +18,7 @@
 
 启动类：
 
-- [CartApplication.java](D:/workspace_idea/BookMall/BookMall/bookmall-cart/src/main/java/com/bookmall/cart/CartApplication.java)
+- [CartApplication.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-cart/src/main/java/com/bookmall/cart/CartApplication.java)
 
 业务代码：
 
@@ -42,7 +42,7 @@
 - Nacos Config：`cart.yaml`
 - MySQL：`localhost:3306/bookmall`
 
-数据库连接配置在 [nacos-config/cart.yaml](D:/workspace_idea/BookMall/nacos-config/cart.yaml) 中维护。
+数据库连接配置在 [nacos-config/cart.yaml](/Users/ibupro/workspace/workspace_idea/BookMall/nacos-config/cart.yaml) 中维护。
 
 ## 4. 当前接口
 
@@ -122,10 +122,32 @@
 
 当前前端已接入购物车：
 
-- [CartView.vue](D:/workspace_idea/BookMall/front/src/views/CartView.vue)：购物车页面，支持勾选、数量增减、删除、清空、合计和购物车结算
-- [bookmall.js](D:/workspace_idea/BookMall/front/src/api/bookmall.js)：`cartApi` 请求封装
-- [BooksView.vue](D:/workspace_idea/BookMall/front/src/views/BooksView.vue)：图书列表提供“加入购物车”入口
-- [App.vue](D:/workspace_idea/BookMall/front/src/App.vue)、[router/index.js](D:/workspace_idea/BookMall/front/src/router/index.js)：购物车导航和 `/cart` 路由
+- [CartView.vue](/Users/ibupro/workspace/workspace_idea/BookMall/front/src/views/CartView.vue)：购物车页面，支持勾选、数量增减、删除、清空、合计和购物车结算
+- [bookmall.js](/Users/ibupro/workspace/workspace_idea/BookMall/front/src/api/bookmall.js)：`cartApi` 请求封装
+- [BooksView.vue](/Users/ibupro/workspace/workspace_idea/BookMall/front/src/views/BooksView.vue)：图书列表提供“加入购物车”入口
+- [App.vue](/Users/ibupro/workspace/workspace_idea/BookMall/front/src/App.vue)、[router/index.js](/Users/ibupro/workspace/workspace_idea/BookMall/front/src/router/index.js)：购物车导航和 `/cart` 路由
+
+## 本地启动（macOS）
+
+1. 启动基础设施：
+
+```bash
+docker compose -f docker-compose.infra.yml up -d
+```
+
+2. 发布 Nacos 配置（首次运行或配置变更后）：
+
+```bash
+cd nacos-config
+bash publish.sh
+```
+
+3. 安装公共模块并启动本服务：
+
+```bash
+mvn -f BookMall/pom.xml -DskipTests install
+mvn -f BookMall/pom.xml -pl bookmall-cart spring-boot:run
+```
 
 ## 8. 验证方式
 

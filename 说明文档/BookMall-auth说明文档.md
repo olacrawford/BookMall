@@ -26,9 +26,9 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 
 当前项目目录中的关键部分：
 
-- [pom.xml](D:/workspace_idea/BookMall/BookMall/pom.xml)
-- [bookmall-common](D:/workspace_idea/BookMall/BookMall/bookmall-common)
-- [bookmall-auth](D:/workspace_idea/BookMall/BookMall/bookmall-auth)
+- [pom.xml](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/pom.xml)
+- [bookmall-common](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-common)
+- [bookmall-auth](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-auth)
 
 ## 3. 父工程配置说明
 
@@ -73,7 +73,7 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 
 文件路径：
 
-- [Result.java](D:/workspace_idea/BookMall/BookMall/bookmall-common/src/main/java/com/bookmall/common/result/Result.java)
+- [Result.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-common/src/main/java/com/bookmall/common/result/Result.java)
 
 用途：
 
@@ -91,7 +91,7 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 
 文件路径：
 
-- [ErrorCode.java](D:/workspace_idea/BookMall/BookMall/bookmall-common/src/main/java/com/bookmall/common/constant/ErrorCode.java)
+- [ErrorCode.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-common/src/main/java/com/bookmall/common/constant/ErrorCode.java)
 
 当前错误码：
 
@@ -106,7 +106,7 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 
 文件路径：
 
-- [BusinessException.java](D:/workspace_idea/BookMall/BookMall/bookmall-common/src/main/java/com/bookmall/common/exception/BusinessException.java)
+- [BusinessException.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-common/src/main/java/com/bookmall/common/exception/BusinessException.java)
 
 用途：
 
@@ -129,7 +129,7 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 
 文件路径：
 
-- [AuthApplication.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/AuthApplication.java)
+- [AuthApplication.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/AuthApplication.java)
 
 当前注解：
 
@@ -145,7 +145,7 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 
 文件路径：
 
-- [application.yml](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/resources/application.yml)
+- [application.yml](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/resources/application.yml)
 
 当前配置包含：
 
@@ -155,7 +155,7 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 - Nacos Config：`auth.yaml`
 - MyBatis-Plus 配置
 
-数据源和 JWT 配置位于 [nacos-config/auth.yaml](D:/workspace_idea/BookMall/nacos-config/auth.yaml)。
+数据源和 JWT 配置位于 [nacos-config/auth.yaml](/Users/ibupro/workspace/workspace_idea/BookMall/nacos-config/auth.yaml)。
 
 当前 MySQL 连接信息：
 
@@ -174,7 +174,7 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 
 文件路径：
 
-- [bookmall-auth/pom.xml](D:/workspace_idea/BookMall/BookMall/bookmall-auth/pom.xml)
+- [bookmall-auth/pom.xml](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-auth/pom.xml)
 
 当前依赖包括：
 
@@ -284,11 +284,11 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 
 文件路径：
 
-- [User.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/entity/User.java)
+- [User.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/entity/User.java)
 
 收货地址实体：
 
-- [UserAddress.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/entity/UserAddress.java)
+- [UserAddress.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/entity/UserAddress.java)
 
 映射表：
 
@@ -314,8 +314,8 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 
 文件路径：
 
-- [UserMapper.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/mapper/UserMapper.java)
-- [UserAddressMapper.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/mapper/UserAddressMapper.java)
+- [UserMapper.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/mapper/UserMapper.java)
+- [UserAddressMapper.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/mapper/UserAddressMapper.java)
 
 说明：
 
@@ -326,36 +326,36 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 
 注册请求：
 
-- [RegisterRequest.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/dto/RegisterRequest.java)
+- [RegisterRequest.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/dto/RegisterRequest.java)
 
 登录请求：
 
-- [LoginRequest.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/dto/LoginRequest.java)
+- [LoginRequest.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/dto/LoginRequest.java)
 
 地址请求：
 
-- [AddressRequest.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/dto/AddressRequest.java)
+- [AddressRequest.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/dto/AddressRequest.java)
 
 ### 7.4 VO
 
 登录返回：
 
-- [LoginResponse.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/vo/LoginResponse.java)
+- [LoginResponse.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/vo/LoginResponse.java)
 
 注册返回与地址返回：
 
-- [UserVO.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/vo/UserVO.java)
-- [AddressVO.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/vo/AddressVO.java)
+- [UserVO.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/vo/UserVO.java)
+- [AddressVO.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/vo/AddressVO.java)
 
 ### 7.5 Service
 
 接口：
 
-- [UserService.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/service/UserService.java)
+- [UserService.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/service/UserService.java)
 
 实现：
 
-- [UserServiceImpl.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/service/impl/UserServiceImpl.java)
+- [UserServiceImpl.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/service/impl/UserServiceImpl.java)
 
 当前方法：
 
@@ -364,8 +364,8 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 
 地址服务：
 
-- [AddressService.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/service/AddressService.java)
-- [AddressServiceImpl.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/service/impl/AddressServiceImpl.java)
+- [AddressService.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/service/AddressService.java)
+- [AddressServiceImpl.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/service/impl/AddressServiceImpl.java)
 
 当前方法：
 
@@ -379,7 +379,7 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 
 文件路径：
 
-- [JwtUtil.java](D:/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/util/JwtUtil.java)
+- [JwtUtil.java](/Users/ibupro/workspace/workspace_idea/BookMall/BookMall/bookmall-auth/src/main/java/com/bookmall/auth/util/JwtUtil.java)
 
 用途：
 
@@ -408,6 +408,28 @@ BookMall 是一个用于练习 Spring Boot + Spring Cloud 微服务开发的图�
 
 - `t_user`
 - `t_user_address`
+
+## 本地启动（macOS）
+
+1. 启动基础设施：
+
+```bash
+docker compose -f docker-compose.infra.yml up -d
+```
+
+2. 发布 Nacos 配置（首次运行或配置变更后）：
+
+```bash
+cd nacos-config
+bash publish.sh
+```
+
+3. 安装公共模块并启动本服务：
+
+```bash
+mvn -f BookMall/pom.xml -DskipTests install
+mvn -f BookMall/pom.xml -pl bookmall-auth spring-boot:run
+```
 
 ## 9. 已验证功能
 
@@ -481,7 +503,7 @@ Authorization: Bearer xxxxx.yyyyy.zzzzz
 - 可登录
 - 可发 token
 - 可管理当前用户收货地址
-- 前端 [AddressView.vue](D:/workspace_idea/BookMall/front/src/views/AddressView.vue) 已接入地址管理页，并支持在图书下单和购物车结算时带入地址
+- 前端 [AddressView.vue](/Users/ibupro/workspace/workspace_idea/BookMall/front/src/views/AddressView.vue) 已接入地址管理页，并支持在图书下单和购物车结算时带入地址
 
 ## 12. 维护规则
 

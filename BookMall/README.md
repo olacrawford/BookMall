@@ -93,7 +93,7 @@ BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目�
 
 ### 2. 初始化数据库
 
-执行脚本 [sql/sql.txt](/D:/workspace_idea/BookMall/sql/sql.txt)，会创建数据库 `bookmall` 及全部 9 张表：
+执行脚本 [sql/sql.txt](/Users/ibupro/workspace/workspace_idea/BookMall/sql/sql.txt)，会创建数据库 `bookmall` 及全部 9 张表：
 
 - `t_user`（用户）
 - `t_category`（分类，平铺大类）
@@ -113,7 +113,7 @@ BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目�
 
 ### 3. 启动顺序
 
-1. 启动 MySQL、Redis（`docker start redis`）、Nacos、RabbitMQ（`docker start rabbitmq`）
+1. 启动基础设施：`docker compose -f docker-compose.infra.yml up -d`
 2. 启动 `bookmall-auth`（8060）
 3. 启动 `bookmall-book`（8070）
 4. 启动 `bookmall-cart`（8083）
@@ -269,14 +269,14 @@ docker exec -it redis redis-cli --scan --pattern 'category*'
 
 更细的模块说明在 `说明文档/` 目录下：
 
-- [说明文档/BookMall-基础设施搭建说明.md](/D:/workspace_idea/BookMall/说明文档/BookMall-基础设施搭建说明.md)
-- [说明文档/BookMall-auth说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-auth说明文档.md)
-- [说明文档/BookMall-book说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-book说明文档.md)
-- [说明文档/BookMall-cart说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-cart说明文档.md)
-- [说明文档/BookMall-stock说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-stock说明文档.md)
-- [说明文档/BookMall-payment说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-payment说明文档.md)
-- [说明文档/BookMall-gateway说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-gateway说明文档.md)
-- [说明文档/BookMall-order说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-order说明文档.md)
+- [说明文档/BookMall-基础设施搭建说明.md](/Users/ibupro/workspace/workspace_idea/BookMall/说明文档/BookMall-基础设施搭建说明.md)
+- [说明文档/BookMall-auth说明文档.md](/Users/ibupro/workspace/workspace_idea/BookMall/说明文档/BookMall-auth说明文档.md)
+- [说明文档/BookMall-book说明文档.md](/Users/ibupro/workspace/workspace_idea/BookMall/说明文档/BookMall-book说明文档.md)
+- [说明文档/BookMall-cart说明文档.md](/Users/ibupro/workspace/workspace_idea/BookMall/说明文档/BookMall-cart说明文档.md)
+- [说明文档/BookMall-stock说明文档.md](/Users/ibupro/workspace/workspace_idea/BookMall/说明文档/BookMall-stock说明文档.md)
+- [说明文档/BookMall-payment说明文档.md](/Users/ibupro/workspace/workspace_idea/BookMall/说明文档/BookMall-payment说明文档.md)
+- [说明文档/BookMall-gateway说明文档.md](/Users/ibupro/workspace/workspace_idea/BookMall/说明文档/BookMall-gateway说明文档.md)
+- [说明文档/BookMall-order说明文档.md](/Users/ibupro/workspace/workspace_idea/BookMall/说明文档/BookMall-order说明文档.md)
 
 ## 目前进度
 
