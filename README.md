@@ -100,6 +100,8 @@ Browser
 
 已有环境按顺序执行 `sql/updates/001_cart_address_stock.sql`、`002_stock_order.sql`、`003_payment.sql`、`004_order_expire_stock_confirm.sql`、`005_optimization.sql` 完成增量升级。
 
+完整 SQL 汇总见 [sql/BookMall-完整SQL整理.md](sql/BookMall-完整SQL整理.md)。
+
 ### 4. 数据库与配置
 
 数据库连接、JWT 密钥、Redis 地址等环境依赖写在 `nacos-config/*.yaml` 里（默认 `localhost:3306`、账号 `root`、密码 `123456`）。各服务 `application.yml` 只维护端口、Nacos 地址和配置导入，本地直连无需额外修改。
