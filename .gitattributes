@@ -1,0 +1,23 @@
+# Keep text files portable between Windows, macOS, and Linux.
+* text=auto
+
+# Scripts and Unix-oriented configuration files must use LF.
+*.sh text eol=lf
+*.bash text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.conf text eol=lf
+Dockerfile text eol=lf
+
+# Java/XML and web sources stay consistent across IDEs.
+*.java text eol=lf
+*.xml text eol=lf
+*.properties text eol=lf
+*.sql text eol=lf
+*.js text eol=lf
+*.vue text eol=lf
+*.json text eol=lf
+
+# Windows batch scripts keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf

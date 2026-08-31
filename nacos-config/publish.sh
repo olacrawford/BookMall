@@ -19,7 +19,7 @@ cd "$(dirname "$0")" || exit 1
 echo "Nacos 地址：http://${NACOS_ADDR}"
 echo "----------------------------------------"
 
-for svc in auth book cart stock order payment gateway; do
+for svc in auth book cart stock order payment gateway after-sale; do
   file="${svc}.yaml"
   if [ ! -f "$file" ]; then
     echo "跳过：$file 不存在"

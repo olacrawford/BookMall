@@ -21,6 +21,7 @@
         <module>bookmall-gateway</module>
         <module>bookmall-order</module>
         <module>bookmall-payment</module>
+        <module>bookmall-after-sale</module>
     </modules>
 
     <properties>

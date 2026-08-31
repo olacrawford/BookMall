@@ -1,5 +1,18 @@
 USE bookmall;
 
+-- 上游查询契约确认（bookmall-after-sale 通过 OpenFeign 调用）：
+-- 1) 订单详情  GET /orders/{id} + X-User-Id
+--    OrderDetailVO: id, orderNo, userId, totalAmount,
+--    status(0待支付/1已支付/2已取消/3已完成), expireTime,
+--    receiverName, receiverPhone, receiverAddress,
+--    items[{bookId, bookTitle, bookPrice, quantity, subtotal}]
+-- 2) 支付单    GET /payment/order/{orderId} + X-User-Id
+--    PaymentVO: id, paymentNo, orderId, orderNo, amount,
+--    payType, status(0待支付/1已支付/2失败), payTime
+-- 3) 库存查询  GET /stock/{bookId}
+--    StockVO: bookId, stock, lockedStock, availableStock
+
+
 -- 电商售后重构的一周基线表。脚本可重复执行，不删除旧交易表。
 
 CREATE TABLE IF NOT EXISTS t_after_sale_order (
