@@ -20,6 +20,7 @@
         <RouterLink to="/cart">购物车</RouterLink>
         <RouterLink to="/addresses">收货地址</RouterLink>
         <RouterLink to="/orders">订单中心</RouterLink>
+        <RouterLink to="/after-sales">售后中心</RouterLink>
       </nav>
     </aside>
 

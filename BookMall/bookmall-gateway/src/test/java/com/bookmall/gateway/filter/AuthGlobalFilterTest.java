@@ -54,6 +54,7 @@ class AuthGlobalFilterTest {
         ArgumentCaptor<ServerWebExchange> captor = ArgumentCaptor.forClass(ServerWebExchange.class);
         verify(chain).filter(captor.capture());
         assertEquals("7", captor.getValue().getRequest().getHeaders().getFirst("X-User-Id"));
+        assertEquals("APPROVER", captor.getValue().getRequest().getHeaders().getFirst("X-User-Roles"));
     }
 
     @Test
@@ -95,6 +96,8 @@ class AuthGlobalFilterTest {
         return Jwts.builder()
                 .setSubject(subject)
                 .claim("username", "tester")
+                .claim("role", "APPROVER")
+                .claim("role", "APPROVER")
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + 3600_000))
                 .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))

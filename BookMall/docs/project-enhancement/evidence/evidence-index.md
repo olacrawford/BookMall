@@ -9,15 +9,16 @@
 | EV-003 | Policy 按金额/风险路由审批 | 单元测试 + DB | `planned` | 阶段 1 |
 | EV-004 | 重复退款只有一个副作用 | 并发测试、唯一索引 | `planned` | 阶段 1/2 |
 | EV-005 | Outbox 发送失败可重试 | 故障演练日志 | `planned` | 阶段 2 |
-| EV-006 | 工具白名单不含写操作 | 接口响应/测试 | `planned` | 阶段 4 |
-| EV-007 | RAG 返回规则条款和版本 | fixture、查询结果 | `planned`/`simulation` | 阶段 4 |
-| EV-008 | 普通用户无法审批或读他人工单 | 安全测试 | `planned` | 阶段 2/5 |
-| EV-009 | 自动退款端到端闭环 | curl/截图/审计行 | `planned`/`simulation` | 阶段 5 |
-| EV-010 | 流程中断后可恢复 | Worker 日志、状态快照 | `planned`/`simulation` | 阶段 2/5 |
+| EV-006 | 工具白名单不含写操作 | 接口响应/测试 | `verified` | 阶段 4 |
+| EV-007 | RAG 返回规则条款和版本 | fixture、查询结果 | `verified`/`simulation` | 阶段 4 |
+| EV-008 | 普通用户无法审批或读他人工单 | 安全测试 | `verified` | 阶段 2/5 |
+| EV-009 | 自动退款/人工审批端到端闭环 | curl、DB 行、audit | `verified`/`simulation` | 阶段 5 |
+| EV-010 | 流程中断后可恢复 | Worker 日志、状态快照 | `verified`/`simulation` | 阶段 2/5 |
 | EV-011 | AI 中台与售后服务分层、双实例故障隔离 | 两实例日志、路由结果、接口契约 | `planned` | 阶段 4/5、后续加餐 2 |
 | EV-012 | 关键词/语义混合检索和规则证据 | 评测集、召回分数、版本/权限过滤 | `planned`/`simulation` | 阶段 4、后续加餐 6 |
-| EV-013 | 主控 Agent + 白名单工具受控编排 | Agent trace、工具清单、失败重试 | `planned` | 阶段 4 |
-| EV-014 | AI 异步长链路最终一致性 | 故障注入、Outbox、恢复时间 | `planned`/`simulation` | 阶段 2/5 |
+| EV-013 | 主控 Agent + 白名单工具受控编排 | Agent trace、工具清单、失败重试 | `verified` | 阶段 4 |
+| EV-014 | AI 异步长链路最终一致性 | 故障注入、Outbox、恢复时间 | `verified`/`simulation` | 阶段 2/5 |
+| EV-015 | 前端售后控制台接入 | 构建输出、Vite 代理、页面路由与 API 结果 | `verified`/`simulation` | 阶段 5 |
 
 ## 证据命名
 

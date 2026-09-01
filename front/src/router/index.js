@@ -5,6 +5,7 @@ import BooksView from '../views/BooksView.vue'
 import CartView from '../views/CartView.vue'
 import OrdersView from '../views/OrdersView.vue'
 import AddressView from '../views/AddressView.vue'
+import AfterSaleView from '../views/AfterSaleView.vue'
 import { isLoggedIn } from '../utils/session'
 
 const routes = [
@@ -14,6 +15,7 @@ const routes = [
   { path: '/books', component: BooksView, meta: { auth: true } },
   { path: '/cart', component: CartView, meta: { auth: true } },
   { path: '/orders', component: OrdersView, meta: { auth: true } },
+  { path: '/after-sales', component: AfterSaleView, meta: { auth: true } },
   { path: '/addresses', component: AddressView, meta: { auth: true } }
 ]
 

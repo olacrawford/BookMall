@@ -53,6 +53,18 @@ spring:
             - Path=/api/payment/**
           filters:
             - StripPrefix=1
+        - id: after-sale
+          uri: lb://after-sale
+          predicates:
+            - Path=/api/after-sales/**
+          filters:
+            - StripPrefix=1
+        - id: approval-tasks
+          uri: lb://after-sale
+          predicates:
+            - Path=/api/approval-tasks/**
+          filters:
+            - StripPrefix=1
       globalcors:
         # 全局跨域配置，解决前端浏览器跨域报错
         corsConfigurations:

@@ -70,10 +70,15 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
             //从token载荷取出userId
             String userId = claims.getSubject();
+            String role = claims.get("role", String.class);
+            if (role == null || role.isBlank()) {
+                role = "USER";
+            }
 
             //修改请求，新增请求头X-User-Id，把用户id透传给下游auth、book服务
             ServerHttpRequest mutated = exchange.getRequest().mutate()
                     .header("X-User-Id", userId)
+                    .header("X-User-Roles", role)
                     .build();
 
             //把修改后的请求往下游服务转发

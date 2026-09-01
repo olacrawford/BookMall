@@ -4,3 +4,22 @@ spring:
     url: jdbc:mysql://localhost:3306/bookmall?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
     username: root
     password: 123456
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: admin
+    password: 123456
+
+after-sale:
+  approver-ids: 1
+  approver-roles: APPROVER
+  logistics:
+    mode: ok
+  outbox:
+    dispatch:
+      delay-ms: 10000
+      initial-delay-ms: 5000
+  workflow:
+    recovery:
+      delay-ms: 30000
+      initial-delay-ms: 10000

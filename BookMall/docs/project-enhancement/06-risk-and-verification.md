@@ -17,11 +17,12 @@
 | 指标 | 目标 | 测量方法 | 状态 |
 |---|---:|---|---|
 | 自动退款链路 P95（Mock） | <= 2s | 20 次 curl/脚本，记录分位数 | `planned` |
-| 异步流程最终完成 | <= 30s | 记录创建到终态时间 | `planned` |
-| 重复退款成功记录 | 1 条 | 并发 2 次相同请求 | `planned` |
-| 非法状态迁移接受数 | 0 | 状态机单测矩阵 | `planned` |
-| 普通用户访问运营接口 | 0 次成功 | 403/业务错误断言 | `planned` |
-| 决策证据完整率 | 100%（种子集） | 每个 Decision 有 evidence/policyVersion | `planned` |
+| 异步流程最终完成 | <= 30s | 记录创建到终态时间 | `verified`/`simulation` |
+| 重复退款成功记录 | 1 条 | 并发 2 次相同请求 | `verified`/`simulation` |
+| 非法状态迁移接受数 | 0 | 状态机单测矩阵 | `verified` |
+| 非法 AI 动作接受数 | 0 | DecisionValidatorTest、EV-013 | `verified` |
+| 普通用户访问运营接口 | 0 次成功 | 403/业务错误断言 | `verified` |
+| 决策证据完整率 | 100%（种子集） | 每个 Decision 有 evidence/policyVersion | `verified`/`simulation` |
 
 ## 测试矩阵
 
@@ -31,7 +32,7 @@
 | 单元 | 重复退款、重复消费 | 同一 key 调用两次 | 一次副作用 |
 | 集成 | MySQL 表、唯一索引、Outbox | Docker 基础设施 + SQL 更新脚本 | 记录可查 |
 | 契约 | Mock LLM、工具结果、RAG | 固定 JSON fixture | Schema 稳定 |
-| 端到端 | 自动退款/人工审批 | 前端或 curl 脚本 | 两条路径闭环 |
+| 端到端 | 自动退款/人工审批 | Gateway JWT + curl 脚本 | 两条路径闭环 |
 | 安全 | 用户 A 读 B、普通用户审批 | 带不同 JWT 调用 | 拒绝越权 |
 | 故障 | 工具超时、Worker 中断、MQ 重复 | 注入开关/重放消息 | 降级或恢复 |
 

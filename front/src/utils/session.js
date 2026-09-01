@@ -3,7 +3,7 @@ import { ref } from 'vue'
 const SESSION_KEY = 'bookmall_session'
 const TOKEN_KEY = 'bookmall_token'
 
-// 兼容历史 session 结构，统一归一化成 { token, user: { userId, username, nickname } }
+// 兼容历史 session 结构，统一归一化成 { token, user: { userId, username, nickname, role } }
 function normalize(data) {
   if (!data) return { token: '', user: null }
 
@@ -12,7 +12,8 @@ function normalize(data) {
     ? {
         userId: rawUser.userId ?? rawUser.id ?? data.userId ?? data.id ?? null,
         username: rawUser.username ?? data.username ?? '',
-        nickname: rawUser.nickname ?? data.nickname ?? rawUser.username ?? data.username ?? ''
+        nickname: rawUser.nickname ?? data.nickname ?? rawUser.username ?? data.username ?? '',
+        role: rawUser.role ?? ''
       }
     : null
 

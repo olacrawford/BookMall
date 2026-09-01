@@ -88,6 +88,30 @@ export const orderApi = {
   }
 }
 
+export const afterSaleApi = {
+  list() {
+    return http.get('/api/after-sales').then(unwrapResult)
+  },
+  create(payload, idempotencyKey) {
+    return http.post('/api/after-sales', payload, { headers: { 'Idempotency-Key': idempotencyKey } }).then(unwrapResult)
+  },
+  detail(id) {
+    return http.get(`/api/after-sales/${id}`).then(unwrapResult)
+  },
+  analysis(id) {
+    return http.get(`/api/after-sales/${id}/analysis`).then(unwrapResult)
+  },
+  approvalQueue(status = 'WAITING') {
+    return http.get('/api/approval-tasks', { params: { status } }).then(unwrapResult)
+  },
+  approve(id, comment) {
+    return http.post(`/api/approval-tasks/${id}/approve`, { comment }).then(unwrapResult)
+  },
+  reject(id, comment) {
+    return http.post(`/api/approval-tasks/${id}/reject`, { comment }).then(unwrapResult)
+  }
+}
+
 export const paymentApi = {
   pay(orderId) {
     return http.post('/api/payment/pay', { orderId }).then(unwrapResult)

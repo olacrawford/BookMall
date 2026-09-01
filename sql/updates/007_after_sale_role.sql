@@ -1,0 +1,5 @@
+USE bookmall;
+
+ALTER TABLE t_user ADD COLUMN role VARCHAR(32) NOT NULL DEFAULT 'USER' COMMENT '角色：USER/APPROVER' AFTER nickname;
+
+UPDATE t_user SET role = 'APPROVER' WHERE id = 1;

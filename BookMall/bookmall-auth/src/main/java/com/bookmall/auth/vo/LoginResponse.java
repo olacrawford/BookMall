@@ -10,6 +10,7 @@ public class LoginResponse {
     private Long userId;
     private String username;
     private String nickname;
+    private String role;
 
     public LoginResponse() {
     }
@@ -19,6 +20,7 @@ public class LoginResponse {
         this.userId = user.getId();
         this.username = user.getUsername();
         this.nickname = user.getNickname();
+        this.role = user.getRole() == null ? "USER" : user.getRole();
     }
 
 }

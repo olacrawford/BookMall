@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 public class AfterSaleDetailVO {
 
     private Long id;
+    private Long afterSaleId;
     private String afterSaleNo;
     private Long orderId;
     private String orderNo;
@@ -20,6 +21,7 @@ public class AfterSaleDetailVO {
     private String ticketNo;
     private String description;
     private String decisionStatus;
+    private String policyAction;
     private Long workflowId;
     private String workflowStatus;
     private LocalDateTime createTime;

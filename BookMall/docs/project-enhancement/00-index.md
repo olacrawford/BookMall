@@ -2,7 +2,7 @@
 
 > 本文件是详细总览，不是首要入口；第一次阅读请从 [README.md](./README.md) 开始。
 
-> 文档状态：`planned`（开工方案，不能替代测试结果）  
+> 文档状态：`completed`（阶段 0-5 已实现并本地留证；Mock/本地模拟结论与生产并发明确区分）
 > 目标周期：连续 7 天，边写边跑边记录  
 > 实施基线：一套遗留电商交易骨架（仓库目录仍保留历史模块名）
 
@@ -47,7 +47,7 @@ flowchart LR
 
 | 你要理解的词 | 在本项目中的通俗解释 | 先看哪里 |
 |---|---|---|
-| LLM | 根据上下文生成文本或结构化 JSON 的推理器 | [phases/phase-4-ai-or-intelligence.md](./phases/phase-4-ai-or-intelligence.md) |
+| LLM | 根据上下文生成文本或结构化 JSON 的推理器 | [phases/phase-4-ai-or-intelligence/README.md](./phases/phase-4-ai-or-intelligence/README.md) |
 | Intent | 把“我没收到货”归类为物流异常/退款诉求 | AI 阶段“输入”图 |
 | Tool/MCP | 给模型使用的受控查询能力，不是数据库通行证 | AI 阶段“工具边界”图 |
 | RAG | 先检索公司规则，再让模型依据条款回答 | [09-post-week-evolution.md](./09-post-week-evolution.md) |
@@ -94,7 +94,7 @@ flowchart LR
 | Day 3 | 审批任务、退款记录、审计 | 工作流 checkpoint；人工审批路径 | 自动/审批/驳回三路可由 curl 验证 |
 | Day 4 | Outbox、消费幂等、恢复扫描 | 超时/重试/权限/trace 故障测试 | 重复退款和中断恢复有证据 |
 | Day 5 | Decision Schema、Mock LLM、工具白名单 | RAG 分块召回、证据落库 | 非法 Decision 不可执行 |
-| Day 6 | 前端工单/详情/审批页 | 端到端演示、审计查询、截图 | 两条主路径完整可演示 |
+| Day 6 | 前端售后控制台（已接入，待录屏） | 端到端演示、审计查询、截图 | 两条主路径完整可演示 |
 | Day 7 | 全量测试、演练、回滚检查 | README、简历、面试问答、复盘 | 只交付有证据的结论 |
 
 每天的节奏固定为：15 分钟读设计 -> 90 分钟 AI 生成骨架 -> 90 分钟人工审查核心逻辑 -> 60 分钟测试/故障注入 -> 30 分钟更新证据。任何硬门未通过，第二天先修复，不顺延堆功能。
@@ -118,7 +118,7 @@ AI 可以代写初稿，但开发者必须亲自补齐“为什么这样设计�
 | 类型 | 当前声明 |
 |---|---|
 | `observed` | 现有模块、依赖、端口、表、消息和测试，见 [01-baseline.md](./01-baseline.md) |
-| `planned` | `bookmall-after-sale`、AI 编排、MCP 工具契约、售后规则 RAG、审批工作流 |
+| `implemented` | `bookmall-after-sale`、AI 编排、工具契约、售后规则 RAG、审批工作流（Mock Provider / 本地 RAG） |
 | `simulation` | Mock 物流、Mock LLM、模拟退款，不接真实资金渠道 |
 | 待确认 | 本周是否新增物理微服务；默认先在售后服务内模块化，避免拆分拖慢闭环 |
 
@@ -138,3 +138,4 @@ AI 可以代写初稿，但开发者必须亲自补齐“为什么这样设计�
 | 日期 | 变更 |
 |---|---|
 | 2026-08-30 | 建立企业增强文档仓库；基于现有代码和已有阶段文档冻结一周范围 |
+| 2026-09-01 | 完成阶段 5：两条主路径、请求头幂等、流程恢复、持久化 AI 分析、Outbox 本地链路、Gateway/JWT 验收、前端售后控制台和证据文档 |

@@ -15,6 +15,25 @@ spring:
         server-addr: localhost:8848
         namespace: public
         group: DEFAULT_GROUP
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: admin
+    password: 123456
+
+after-sale:
+  approver-ids: 1
+  approver-roles: APPROVER
+  logistics:
+    mode: ok
+  outbox:
+    dispatch:
+      delay-ms: 10000
+      initial-delay-ms: 5000
+  workflow:
+    recovery:
+      delay-ms: 30000
+      initial-delay-ms: 10000
 
 mybatis-plus:
   configuration:

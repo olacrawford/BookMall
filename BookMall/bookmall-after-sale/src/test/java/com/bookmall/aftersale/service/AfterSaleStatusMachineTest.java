@@ -14,14 +14,24 @@ class AfterSaleStatusMachineTest {
     @ParameterizedTest(name = "{0} -> {1}")
     @CsvSource({
             "CREATED, UNDER_REVIEW",
-            "UNDER_REVIEW, APPROVAL",
+            "UNDER_REVIEW, WAITING_APPROVAL",
+            "UNDER_REVIEW, RISK_REVIEW",
             "UNDER_REVIEW, AUTO_HANDLED",
+            "UNDER_REVIEW, WAITING_HUMAN",
             "UNDER_REVIEW, REJECTED",
             "UNDER_REVIEW, CANCELED",
-            "APPROVAL, PROCESSING",
-            "APPROVAL, REJECTED",
-            "APPROVAL, CANCELED",
-            "PROCESSING, COMPLETED"
+            "WAITING_APPROVAL, PROCESSING",
+            "WAITING_APPROVAL, REJECTED",
+            "WAITING_APPROVAL, CANCELED",
+            "RISK_REVIEW, PROCESSING",
+            "RISK_REVIEW, REJECTED",
+            "RISK_REVIEW, CANCELED",
+            "AUTO_HANDLED, PROCESSING",
+            "PROCESSING, COMPLETED",
+            "PROCESSING, FAILED",
+            "PROCESSING, WAITING_HUMAN",
+            "WAITING_HUMAN, PROCESSING",
+            "FAILED, PROCESSING"
     })
     void transition_returnsTarget_whenValid(String current, String target) {
         assertEquals(target, statusMachine.transition(current, target));
@@ -31,10 +41,11 @@ class AfterSaleStatusMachineTest {
     @CsvSource({
             "CREATED, COMPLETED",
             "CREATED, PROCESSING",
-            "CREATED, APPROVAL",
+            "CREATED, WAITING_APPROVAL",
             "UNDER_REVIEW, COMPLETED",
-            "APPROVAL, AUTO_HANDLED",
-            "PROCESSING, APPROVAL",
+            "WAITING_APPROVAL, AUTO_HANDLED",
+            "WAITING_HUMAN, COMPLETED",
+            "PROCESSING, WAITING_APPROVAL",
             "PROCESSING, REJECTED",
             "COMPLETED, PROCESSING",
             "REJECTED, PROCESSING",

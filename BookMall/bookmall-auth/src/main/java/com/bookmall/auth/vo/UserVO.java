@@ -11,16 +11,18 @@ public class UserVO {
     private String nickname;
     private String phone;
     private String email;
+    private String role;
 
     public UserVO() {
     }
 
-    public UserVO(Long id, String username, String nickname, String phone, String email) {
+    public UserVO(Long id, String username, String nickname, String phone, String email, String role) {
         this.id = id;
         this.username = username;
         this.nickname = nickname;
         this.phone = phone;
         this.email = email;
+        this.role = role;
     }
 
 }

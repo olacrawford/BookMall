@@ -7,6 +7,7 @@ set -euo pipefail
 GATEWAY_URL="${GATEWAY_URL:-http://localhost:8080}"
 TEST_TOKEN="${TEST_TOKEN:-}"
 IDEMPOTENCY_KEY="${IDEMPOTENCY_KEY:-verify-week-one-low-001}"
+HIGH_IDEMPOTENCY_KEY="${HIGH_IDEMPOTENCY_KEY:-${IDEMPOTENCY_KEY}-high}"
 ORDER_ID="${ORDER_ID:-10001}"
 HIGH_VALUE_ORDER_ID="${HIGH_VALUE_ORDER_ID:-10002}"
 WORK_DIR="${WORK_DIR:-$(mktemp -d "${TMPDIR:-/tmp}/after-sale-verify.XXXXXX")}"
@@ -20,10 +21,11 @@ need jq
 
 request() {
   local name="$1" method="$2" url="$3" body="${4:-}"
+  local request_key="${5:-$IDEMPOTENCY_KEY}"
   local out="${WORK_DIR}/${name}.json"
   local args=(-sS -o "$out" -w '%{http_code}' -H 'Content-Type: application/json')
   [ -n "$TEST_TOKEN" ] && args+=(-H "Authorization: ${TEST_TOKEN}")
-  args+=(-H "Idempotency-Key: ${IDEMPOTENCY_KEY}")
+  args+=(-H "Idempotency-Key: ${request_key}")
   [ -n "$body" ] && args+=(-X "$method" -d "$body") || args+=(-X "$method")
   local status
   status="$(curl "${args[@]}" "${GATEWAY_URL}${url}")"
@@ -58,7 +60,7 @@ duplicate_id="$(jq -r '.data.afterSaleId // empty' "${WORK_DIR}/duplicate.json")
 
 echo "== 4. 高金额人工审批路径 =="
 high_body="$(jq -nc --argjson order "$HIGH_VALUE_ORDER_ID" '{orderId:$order,type:"LOGISTICS_NOT_RECEIVED",description:"高金额订单物流异常",evidence:["签收凭证待核实"],requestedAction:"REFUND"}')"
-request high-create POST /api/after-sales "$high_body" >/dev/null
+request high-create POST /api/after-sales "$high_body" "$HIGH_IDEMPOTENCY_KEY" >/dev/null
 high_id="$(jq -r '.data.afterSaleId // empty' "${WORK_DIR}/high-create.json")"
 [ -n "$high_id" ] || { echo '高金额创建未返回 afterSaleId' >&2; exit 1; }
 request high-detail GET "/api/after-sales/${high_id}" >/dev/null

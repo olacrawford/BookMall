@@ -3,6 +3,8 @@ package com.bookmall.aftersale.controller;
 import com.bookmall.aftersale.dto.AfterSaleCreateRequest;
 import com.bookmall.aftersale.dto.RefundRequest;
 import com.bookmall.aftersale.service.AfterSaleService;
+import com.bookmall.aftersale.ai.model.AiAnalysisResponse;
+import com.bookmall.aftersale.service.AfterSaleAnalysisQueryService;
 import com.bookmall.aftersale.vo.AfterSaleDetailVO;
 import com.bookmall.aftersale.vo.AfterSaleVO;
 import com.bookmall.aftersale.vo.RefundVO;
@@ -24,13 +26,22 @@ public class AfterSaleController {
 
     private final AfterSaleService afterSaleService;
 
-    public AfterSaleController(AfterSaleService afterSaleService) {
+    private final AfterSaleAnalysisQueryService analysisQueryService;
+
+    public AfterSaleController(AfterSaleService afterSaleService,
+                              AfterSaleAnalysisQueryService analysisQueryService) {
         this.afterSaleService = afterSaleService;
+        this.analysisQueryService = analysisQueryService;
     }
 
     @PostMapping
     public Result<AfterSaleDetailVO> create(@RequestHeader("X-User-Id") Long userId,
+                                            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
                                             @Valid @RequestBody AfterSaleCreateRequest request) {
+        if (idempotencyKey != null && !idempotencyKey.isBlank()
+                && (request.getIdempotencyKey() == null || request.getIdempotencyKey().isBlank())) {
+            request.setIdempotencyKey(idempotencyKey);
+        }
         return Result.success(afterSaleService.createAfterSale(userId, request));
     }
 
@@ -43,6 +54,12 @@ public class AfterSaleController {
     public Result<AfterSaleDetailVO> detail(@RequestHeader("X-User-Id") Long userId,
                                             @PathVariable Long id) {
         return Result.success(afterSaleService.getAfterSale(userId, id));
+    }
+
+    @GetMapping("/{id}/analysis")
+    public Result<AiAnalysisResponse> analysis(@RequestHeader("X-User-Id") Long userId,
+                                               @PathVariable Long id) {
+        return Result.success(analysisQueryService.getAnalysis(userId, id));
     }
 
     @PostMapping("/{id}/refund")

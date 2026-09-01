@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 public class AfterSaleVO {
 
     private Long id;
+    private Long afterSaleId;
     private String afterSaleNo;
     private Long orderId;
     private String orderNo;

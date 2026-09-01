@@ -51,11 +51,12 @@ public class UserServiceImpl implements UserService {
         user.setPhone(request.getPhone());
         user.setEmail(request.getEmail());
         user.setStatus(1);
+        user.setRole("USER");
         user.setCreateTime(LocalDateTime.now());
         user.setUpdateTime(LocalDateTime.now());
 
         userMapper.insert(user);
-        return new UserVO(user.getId(), user.getUsername(), user.getNickname(), user.getPhone(), user.getEmail());
+        return new UserVO(user.getId(), user.getUsername(), user.getNickname(), user.getPhone(), user.getEmail(), user.getRole());
     }
 
     /**
