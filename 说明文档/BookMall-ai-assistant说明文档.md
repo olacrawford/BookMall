@@ -8,7 +8,7 @@
 
 - `POST /ai/chat`：接收用户消息，AI 结合工具回答
 - `GET /ai/hello`：健康检查
-- 工具：`searchBooks` / `getBookById` / `listCategories` / `queryMyOrders` / `queryOrderDetail`
+- 工具：`searchBooks` / `listCategories` / `queryMyOrders` / `queryOrderDetail`
 - 只读：仅通过 OpenFeign 调 book / order 的查询接口，不参与下单、支付、退款、取消
 - 会话记忆存 Redis，按用户 + 会话隔离，带 TTL
 - `X-User-Id` 由网关透传，Feign 回源时原样转发，不接受模型传入的 userId
@@ -83,7 +83,6 @@ AI 对话。请求头必须携带 `X-User-Id`（网关注入）。
 ## 5. 依赖的现有服务接口
 
 - `GET /books/page`：图书分页（`BookFeignClient.pageBooks`）
-- `GET /books/{id}`：图书详情（`BookFeignClient.getBookById`）
 - `GET /books/categories`：分类（`BookFeignClient.listCategories`）
 - `GET /orders`：当前用户订单列表（`OrderFeignClient.listOrders`，需 `X-User-Id`）
 - `GET /orders/{id}`：订单详情（`OrderFeignClient.getOrderDetail`，需 `X-User-Id`）
