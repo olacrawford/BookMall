@@ -4,10 +4,12 @@
 
 当前项目运行在以下环境中：
 
-- Windows 启动 Java 微服务
-- WSL 使用 Docker Desktop 启动基础设施
-- MySQL、Nacos、Redis 运行在 Docker 容器中
+- macOS（Apple Silicon）启动 Java 微服务
+- Docker Desktop 使用 arm64 镜像启动基础设施
+- MySQL、Nacos、Redis、RabbitMQ 运行在 Docker 容器中
 - Java 服务通过 `localhost` 访问 Docker 映射出来的端口
+- 一键启动：`docker compose -f docker-compose.infra.yml up -d`
+- 引导脚本：`bash scripts/dev-macos.sh` 会检查 arm64、启动并等待中间件健康、发布 Nacos 配置
 
 当前基础设施端口：
 
@@ -32,6 +34,7 @@
 | `bookmall-stock` | 8090 | 库存查询、下单预占、取消释放 |
 | `bookmall-order` | 8050 | 直接/购物车下单、订单管理、OpenFeign |
 | `bookmall-payment` | 8051 | 支付单、内部模拟支付、发布支付成功事件 |
+| `bookmall-ai` | 8071 | AI 问答助手（LangChain4j + 通义千问） |
 
 ## 3. 当前基础设施能力
 
@@ -41,7 +44,7 @@
 
 - 服务注册与发现
 - Nacos Config 配置中心
-- Gateway 通过 `lb://auth`、`lb://book`、`lb://cart`、`lb://stock`、`lb://order`、`lb://payment` 路由
+- Gateway 通过 `lb://auth`、`lb://book`、`lb://cart`、`lb://stock`、`lb://order`、`lb://payment`、`lb://ai-assistant` 路由
 
 配置脚本位于 `nacos-config/`：
 
@@ -52,6 +55,7 @@
 - `order.yaml`
 - `payment.yaml`
 - `gateway.yaml`
+- `ai-assistant.yaml`
 
 更新配置后执行：
 
@@ -87,6 +91,12 @@ bash publish.sh
 - 缓存统一 30 分钟过期，查询结果为 `null` 时不写入缓存
 - 新增、修改、删除图书时清理 `book` 和 `books` 缓存
 
+当前 Redis 也用于 `bookmall-ai`：
+
+- 保存 AI 对话会话记忆（`ChatMemoryStore`），按「用户 ID + 会话 ID」隔离
+- 会话记忆默认 TTL 2 小时，超时自动过期
+- 由 `RedisChatMemoryStore` 使用 `StringRedisTemplate` 读写
+
 ### 3.4 Sentinel
 
 当前 Sentinel 接在 `bookmall-book`：
@@ -97,10 +107,11 @@ bash publish.sh
 - `listCategories`：80 QPS
 - 超限返回 429
 
-Windows 下如果 Sentinel 无法写 `C:\logs\csp`，启动 `bookmall-book` 时指定项目内日志目录：
+启动 `bookmall-book` 时，如果 Sentinel 无法写入默认日志目录，指定项目内日志目录：
 
-```text
-mvn -o -s D:\workspace_idea\BookMall\.m2\settings.xml -f D:\workspace_idea\BookMall\BookMall\pom.xml -pl bookmall-book spring-boot:run '-Dspring-boot.run.jvmArguments=-Dcsp.sentinel.log.dir=D:/workspace_idea/BookMall/logs/sentinel'
+```bash
+mkdir -p logs/sentinel
+mvn -f BookMall/pom.xml -pl bookmall-book spring-boot:run "-Dspring-boot.run.jvmArguments=-Dcsp.sentinel.log.dir=${PWD}/logs/sentinel"
 ```
 
 ### 3.5 RabbitMQ
@@ -126,14 +137,14 @@ RabbitMQ 连接配置位于 `nacos-config/payment.yaml`、`nacos-config/order.ya
 启动 RabbitMQ：
 
 ```bash
-docker start rabbitmq
+docker compose -f docker-compose.infra.yml up -d rabbitmq
 ```
 
 支付服务和订单服务都会声明同名交换机、队列和绑定，RabbitMQ 声明是幂等的，不依赖两个服务的严格启动顺序。
 
 ### 3.6 OpenFeign
 
-当前 `bookmall-order` 和 `bookmall-cart` 使用 OpenFeign：
+当前 `bookmall-order`、`bookmall-cart`、`bookmall-ai` 使用 OpenFeign：
 
 - 服务名：`book`
 - 调用：`GET /books/{id}`
@@ -141,7 +152,8 @@ docker start rabbitmq
 - 订单服务还通过服务名 `cart` 调用 `GET /cart/selected`，读取购物车已选条目
 - 订单服务通过服务名 `stock` 调用 `POST /stock/deduct`，完成下单前的库存预占
 - 支付服务通过服务名 `order` 调用 `GET /orders/{id}`，完成支付前订单校验
-- `cart.yaml`、`order.yaml`、`payment.yaml` 配置默认连接超时 3 秒、读取超时 5 秒
+- `bookmall-ai` 通过服务名 `book` 调用 `GET /books/page`、`GET /books/{id}`、`GET /books/categories`，通过服务名 `order` 调用 `GET /orders`、`GET /orders/{id}`，以上均为只读查询，Feign 从 `UserContextHolder` 注入 `X-User-Id` 透传给订单服务
+- `cart.yaml`、`order.yaml`、`payment.yaml`、`ai-assistant.yaml` 配置默认连接超时，其中 `ai-assistant.yaml` 连接超时 3 秒、读取超时 8 秒
 
 ## 4. 启动顺序
 
@@ -154,12 +166,13 @@ docker start rabbitmq
 5. `bookmall-order`（8050）
 6. `bookmall-payment`（8051）
 7. `bookmall-gateway`（8080）
+8. `bookmall-ai`（8071，可最后启动，与主链路解耦）
 
 常用 Maven 命令：
 
 ```text
-mvn -o -s D:\workspace_idea\BookMall\.m2\settings.xml -f D:\workspace_idea\BookMall\BookMall\pom.xml -DskipTests install
-mvn -o -s D:\workspace_idea\BookMall\.m2\settings.xml -f D:\workspace_idea\BookMall\BookMall\pom.xml -pl bookmall-auth spring-boot:run
+mvn -f BookMall/pom.xml -DskipTests install
+mvn -f BookMall/pom.xml -pl bookmall-auth spring-boot:run
 ```
 
 先执行 `install` 安装公共模块，再把 `bookmall-auth` 替换为其他模块名即可启动对应服务。不要对 `spring-boot:run` 使用 `-am`，否则会尝试在父工程上找启动类。

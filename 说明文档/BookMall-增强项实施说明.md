@@ -11,6 +11,7 @@
 - `bookmall-cart` 使用数据库唯一键原子更新，避免并发加购重复插入
 - `cart` / `order` / `payment` 配置 OpenFeign 默认连接和读取超时
 - `bookmall-order` 超时关单分批处理，`t_order` 使用 `(user_id, create_time)` 复合索引
+- `bookmall-ai` 基于 LangChain4j + DashScope 的只读 AI 助手，会话记忆存 Redis
 
 ## 2. Redis 缓存
 
@@ -64,6 +65,22 @@
 
 消息重复消费通过支付订单幂等和库存重复确认判断保证不会重复扣减库存。
 
+## 4.5 AI 只读助手（LangChain4j + DashScope）
+
+### 4.5.1 实现方式
+
+- `config/AiModelConfig` 基于 `dashscope.*` 配置构建 `OpenAiChatModel`，对接阿里云通义千问兼容模式
+- `ai/BookAssistantAiService` 使用 `@AiService` + `@SystemMessage` 声明助手边界与工具清单
+- `tool/QueryBookTool` / `tool/QueryOrderTool` 用 `@Tool` 暴露搜书、找书、分类、查订单、查订单详情
+- `config/ChatMemoryConfig` + `support/RedisChatMemoryStore` 把会话记忆落到 Redis，按「用户 + 会话」隔离
+- `config/FeignAuthConfig` 通过 `RequestInterceptor` 把 `X-User-Id` 透传给订单服务，AI 只读、不写交易库
+
+### 4.5.2 关键点
+
+- 模型参数走 `nacos-config/ai-assistant.yaml`：`dashscope.api-key` 取环境变量 `DASHSCOPE_API_KEY`
+- 会话记忆 TTL 2 小时，工具返回结果最多 5 条，避免上下文过长
+- 前端新增 `front/src/views/AiChatView.vue` 与 `/ai` 路由、`aiApi`
+
 ## 5. 核心服务单元测试
 
 - `bookmall-auth`：登录成功签发 Token、用户不存在、密码错误、注册重名
@@ -73,7 +90,8 @@
 - `bookmall-order`：确认收货幂等、支付幂等、取消/超时释放事件
 - `bookmall-stock`：库存预占失败、释放幂等、确认幂等
 - `bookmall-payment`：支付成功发布事件、MQ 发送失败回滚
-- 测试依赖使用 `spring-boot-starter-test`，可运行 `mvn -pl bookmall-auth,bookmall-book,bookmall-cart,bookmall-gateway,bookmall-order,bookmall-stock,bookmall-payment -am test`
+- `bookmall-ai`：`ResultUtils` 解包成功/异常、`ChatServiceImpl` 生成会话 ID 与构造记忆键
+- 测试依赖使用 `spring-boot-starter-test`，可运行 `mvn -pl bookmall-auth,bookmall-book,bookmall-cart,bookmall-gateway,bookmall-order,bookmall-stock,bookmall-payment,bookmall-ai -am test`
 
 ## 6. 验证方式
 

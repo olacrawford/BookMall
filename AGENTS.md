@@ -13,20 +13,28 @@ The Git root is this directory.
   - `bookmall-order` (8050): direct/cart orders, paid-stock confirmation, timeout close, and OpenFeign calls to book, cart, and stock services.
   - `bookmall-payment` (8051): mock payment records and order paid-state updates via OpenFeign.
   - `bookmall-gateway` (8080): routing, JWT validation, and `X-User-Id`.
+  - `bookmall-ai` (8071): read-only chatbot using LangChain4j + DashScope (Qwen); session memory in Redis; calls book/order via OpenFeign.
 - `front/`: Vue 3 + Vite app under `front/src/`, including the cart page at `front/src/views/CartView.vue`.
 - `sql/sql.txt`: complete MySQL schema and seed data, including all 9 tables.
 - `sql/updates/`: incremental SQL scripts for existing environments.
 - `nacos-config/`: per-service config and `publish.sh`.
+- `docker-compose.infra.yml`: local MySQL, Nacos, Redis, and RabbitMQ for macOS / Docker Desktop.
+- `scripts/dev-macos.sh`: optional macOS bootstrap for infra + Nacos config publishing.
 - `说明文档/`: detailed module and deployment docs.
 
 ## Build, Test, and Development Commands
 
-Use `mvn -f BookMall/pom.xml -q clean package` to compile all backend modules, and `mvn -f BookMall/pom.xml -q test` to run backend tests. Run `mvn -f BookMall/pom.xml -DskipTests install` once, then start one service with `mvn -f BookMall/pom.xml -pl bookmall-auth spring-boot:run`; replace the module name as needed. Do not use `-am` with `spring-boot:run`, because it also runs the parent POM, which has no main class. Start auth, book, cart, stock, order, and payment before the gateway.
+Use `mvn -f BookMall/pom.xml -q clean package` to compile all backend modules, and `mvn -f BookMall/pom.xml -q test` to run backend tests. Run `mvn -f BookMall/pom.xml -DskipTests install` once, then start one service with `mvn -f BookMall/pom.xml -pl bookmall-auth spring-boot:run`; replace the module name as needed. Do not use `-am` with `spring-boot:run`, because it also runs the parent POM, which has no main class. Start auth, book, cart, stock, order, and payment before the gateway; `bookmall-ai` is independent and can run after the gateway.
 
-When starting `bookmall-book` on Windows, if Sentinel cannot write `C:\logs\csp`, point it into the workspace:
+`bookmall-ai` needs the DashScope API key as `DASHSCOPE_API_KEY` env var (never commit it); its Spring config lives in `nacos-config/ai-assistant.yaml`.
+
+On Apple Silicon, the gateway gets the correct Netty native library through the `macos-arm64` Maven profile in `bookmall-gateway/pom.xml`.
+
+When starting `bookmall-book`, if Sentinel cannot write its default log directory, point it into the workspace:
 
 ```bash
-mvn -f BookMall/pom.xml -pl bookmall-book spring-boot:run '-Dspring-boot.run.jvmArguments=-Dcsp.sentinel.log.dir=D:/workspace_idea/BookMall/logs/sentinel'
+mkdir -p logs/sentinel
+mvn -f BookMall/pom.xml -pl bookmall-book spring-boot:run "-Dspring-boot.run.jvmArguments=-Dcsp.sentinel.log.dir=${PWD}/logs/sentinel"
 ```
 
 For frontend, run `cd front && npm install && npm run dev` to start Vue at `http://localhost:5173`, or `npm run build` to produce the build. Apply database changes by running `sql/sql.txt` and `sql/updates/*.sql` against MySQL. Publish config changes with `cd nacos-config && bash publish.sh`.
@@ -52,6 +60,4 @@ Update `README.md`, `说明文档/`, `sql/sql.txt`, `nacos-config/*.yaml`, and t
 ## Security & Configuration
 
 Keep real credentials out of Git. Keep local ports and service names in `application.yml`; DB, Redis, and JWT values belong in `nacos-config/*.yaml`. Never let downstream services trust client-supplied `X-User-Id`; only the gateway filter should set it.
-
-
 

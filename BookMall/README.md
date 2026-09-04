@@ -1,6 +1,6 @@
 # BookMall 项目说明文档
 
-> 一个基于 Spring Cloud Alibaba 的微服务图书商城项目，当前保留用户、图书、购物车、库存、支付、订单六个核心业务服务 + 网关与公共模块，前后端主链路已跑通，适合作为微服务课程设计、毕业设计或个人作品集项目。
+> 一个基于 Spring Cloud Alibaba 的微服务图书商城项目，当前保留用户、图书、购物车、库存、支付、订单六个核心业务服务 + AI 问答助手、网关与公共模块，前后端主链路已跑通，适合作为微服务课程设计、毕业设计或个人作品集项目。
 
 ## 项目定位
 
@@ -49,6 +49,7 @@ BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目�
 | `bookmall-stock` | 8090 | 库存查询、下单预占、支付确认、取消释放 |
 | `bookmall-order` | 8050 | 订单（直接下单、购物车下单、列表、详情、取消、超时自动关单） |
 | `bookmall-payment` | 8051 | 支付单、内部模拟支付、发布支付成功事件触发订单异步更新与库存确认 |
+| `bookmall-ai` | 8071 | AI 问答助手：LangChain4j + DashScope 通义千问，只读调用图书/订单，会话记忆存 Redis |
 | `front` | 5173 | 前端，Vite 托管 |
 
 ## 项目亮点
@@ -93,7 +94,7 @@ BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目�
 
 ### 2. 初始化数据库
 
-执行脚本 [sql/sql.txt](/D:/workspace_idea/BookMall/sql/sql.txt)，会创建数据库 `bookmall` 及全部 9 张表：
+执行脚本 [sql/sql.txt](../sql/sql.txt)，会创建数据库 `bookmall` 及全部 9 张表：
 
 - `t_user`（用户）
 - `t_category`（分类，平铺大类）
@@ -113,7 +114,18 @@ BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目�
 
 ### 3. 启动顺序
 
-1. 启动 MySQL、Redis（`docker start redis`）、Nacos、RabbitMQ（`docker start rabbitmq`）
+1. 启动基础设施：
+
+```bash
+docker compose -f docker-compose.infra.yml up -d
+```
+
+或在 macOS 上直接运行：
+
+```bash
+bash scripts/dev-macos.sh
+```
+
 2. 启动 `bookmall-auth`（8060）
 3. 启动 `bookmall-book`（8070）
 4. 启动 `bookmall-cart`（8083）
@@ -121,6 +133,14 @@ BookMall 是一个围绕图书商城业务拆分的前后端分离项目，目�
 6. 启动 `bookmall-order`（8050）
 7. 启动 `bookmall-payment`（8051）
 8. 启动 `bookmall-gateway`（8080）
+9. 启动 `bookmall-ai`（8071，可选，AI 问答助手）
+
+启动 `bookmall-book` 时如遇 Sentinel 日志目录不可写：
+
+```bash
+mkdir -p logs/sentinel
+mvn -f BookMall/pom.xml -pl bookmall-book spring-boot:run "-Dspring-boot.run.jvmArguments=-Dcsp.sentinel.log.dir=${PWD}/logs/sentinel"
+```
 
 ### 4. 前端运行
 
@@ -176,6 +196,7 @@ docker exec -it redis redis-cli --scan --pattern 'category*'
 - 收货地址页：新增、编辑、删除、设置默认地址
 - 立即购买 / 购物车结算支持从已保存地址带入收货信息
 - 订单中心：订单列表、详情、支付、取消、确认收货、超时自动关单
+- AI 助手：`/ai` 页与书小助对话，可搜书/查订单（只读），会话保存在前端会话键下
 
 ### 后端基础能力
 
@@ -249,6 +270,15 @@ docker exec -it redis redis-cli --scan --pattern 'category*'
 - 支付成功后发布 `bookmall.pay.success.exchange` / `pay.success` 消息
 - 使用 `t_payment` 保存支付单，当前 `payType=mock`
 
+### `bookmall-ai`
+
+- `POST /api/ai/chat`：AI 对话，读通义千问，只查图书/订单，不写数据
+- `GET /api/ai/hello`：健康检查
+- 工具：`searchBooks` / `getBookById` / `listCategories` / `queryMyOrders` / `queryOrderDetail`
+- Feign 透传网关 `X-User-Id`，只读回源 book / order
+- 会话记忆存 Redis，key `chat:memory:{userId}:{conversationId}`，带 TTL
+- 需要环境变量 `DASHSCOPE_API_KEY`
+
 ### 配置中心（Nacos Config）
 
 - 各服务的 `application.yml` 只保留本机配置（端口、服务名、Nacos 地址）
@@ -274,6 +304,7 @@ docker exec -it redis redis-cli --scan --pattern 'category*'
 - [说明文档/BookMall-book说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-book说明文档.md)
 - [说明文档/BookMall-cart说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-cart说明文档.md)
 - [说明文档/BookMall-stock说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-stock说明文档.md)
+- [说明文档/BookMall-ai-assistant说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-ai-assistant说明文档.md)
 - [说明文档/BookMall-payment说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-payment说明文档.md)
 - [说明文档/BookMall-gateway说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-gateway说明文档.md)
 - [说明文档/BookMall-order说明文档.md](/D:/workspace_idea/BookMall/说明文档/BookMall-order说明文档.md)

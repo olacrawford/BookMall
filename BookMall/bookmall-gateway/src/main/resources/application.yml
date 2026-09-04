@@ -53,6 +53,12 @@ spring:
             - Path=/api/payment/**
           filters:
             - StripPrefix=1
+        - id: ai
+          uri: lb://ai-assistant
+          predicates:
+            - Path=/api/ai/**
+          filters:
+            - StripPrefix=1
       globalcors:
         # 全局跨域配置，解决前端浏览器跨域报错
         corsConfigurations:

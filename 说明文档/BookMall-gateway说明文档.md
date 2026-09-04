@@ -6,7 +6,7 @@
 
 当前已实现：
 
-- 路由转发到 `auth`、`book`、`cart`、`stock`、`order`、`payment` 服务
+- 路由转发到 `auth`、`book`、`cart`、`stock`、`order`、`payment`、`ai` 服务
 - 通过 Nacos 服务名完成服务发现与负载均衡
 - 校验 JWT，并把 `userId` 写入 `X-User-Id` 请求头透传给下游
 - 登录、注册、健康检查和图书浏览接口白名单放行
@@ -40,6 +40,8 @@
   uri: lb://order
 - id: payment
   uri: lb://payment
+- id: ai
+  uri: lb://ai-assistant
 ```
 
 ## 4. 当前路由规则
@@ -52,6 +54,7 @@
 | `/api/books/**` | `book` | `/books/**` |
 | `/api/orders/**` | `order` | `/orders/**` |
 | `/api/payment/**` | `payment` | `/payment/**` |
+| `/api/ai/**` | `ai-assistant` | `/ai/**` |
 
 网关通过 `StripPrefix=1` 去掉路径中的 `api`。
 
@@ -79,6 +82,8 @@ X-User-Id: <userId>
 - `GET /api/books/**`
 - `GET /api/stock/**`
 
+> 说明：`/api/ai/**` 中 `GET /api/ai/hello` 会被上面的 `/hello` 规则放行；`POST /api/ai/chat` 不在白名单内，必须携带 token 才能访问。
+
 未携带 token、token 无效或 token 过期时返回 `401`。
 
 ## 6. 跨域配置
@@ -98,6 +103,8 @@ X-User-Id: <userId>
 - `spring-cloud-starter-loadbalancer`
 - `jjwt-api / jjwt-impl / jjwt-jackson`
 
+在 Apple Silicon（arm64）上，`bookmall-gateway/pom.xml` 通过 `macos-arm64` Maven profile 引入 Netty 原生 DNS 解析库（`netty-resolver-dns-native-macos`），避免网关启动时因缺少原生库报错。
+
 ## 8. 验证方式
 
 健康检查：
@@ -108,6 +115,7 @@ GET http://localhost:8080/api/books/hello
 GET http://localhost:8080/api/stock/hello
 GET http://localhost:8080/api/orders/hello
 GET http://localhost:8080/api/payment/hello
+GET http://localhost:8080/api/ai/hello
 ```
 
 需要登录的接口：

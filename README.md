@@ -84,10 +84,22 @@ Browser
 
 ### 1. 基础环境
 
-- Windows + IDEA 启动 Java 服务
-- Docker 启动 MySQL、Nacos、Redis、RabbitMQ
+- macOS（Apple Silicon）+ IDEA 启动 Java 服务
+- Docker Desktop + `docker-compose.infra.yml` 启动 MySQL、Nacos、Redis、RabbitMQ
 
 ### 2. 启动基础设施
+
+一键启动全部中间件：
+
+```bash
+docker compose -f docker-compose.infra.yml up -d
+```
+
+也可以运行 macOS 引导脚本，它会检查 arm64、拉起 Docker、等待健康检查并发布 Nacos 配置：
+
+```bash
+bash scripts/dev-macos.sh
+```
 
 - MySQL: `localhost:3306`
 - Nacos: `localhost:8848`
@@ -115,6 +127,20 @@ Browser
 5. `bookmall-order`（8050）
 6. `bookmall-payment`（8051）
 7. `bookmall-gateway`（8080）
+8. `bookmall-ai`（8071，可选，AI 问答助手）
+
+启动 `bookmall-book` 时如需指定 Sentinel 日志目录：
+
+```bash
+mkdir -p logs/sentinel
+mvn -f BookMall/pom.xml -pl bookmall-book spring-boot:run "-Dspring-boot.run.jvmArguments=-Dcsp.sentinel.log.dir=${PWD}/logs/sentinel"
+```
+
+启动 `bookmall-ai` 前需设置通义千问 Key：
+
+```bash
+export DASHSCOPE_API_KEY='sk-你的通义千问Key'
+```
 
 后端主工程说明见 [BookMall/README.md](BookMall/README.md)。
 
@@ -129,6 +155,7 @@ npm run dev
 ### 7. 访问入口
 
 - 前端首页: `http://localhost:5173`
+- AI 助手页: `http://localhost:5173/ai`（需登录后从侧边栏「AI 助手」进入）
 - 网关入口: `http://localhost:8080`
 - 图书接口示例: `http://localhost:5173/api/books`
 
@@ -142,4 +169,8 @@ npm run dev
 - [说明文档/BookMall-payment说明文档.md](说明文档/BookMall-payment说明文档.md)
 - [说明文档/BookMall-order说明文档.md](说明文档/BookMall-order说明文档.md)
 - [说明文档/BookMall-gateway说明文档.md](说明文档/BookMall-gateway说明文档.md)
-
+- [说明文档/BookMall-ai-assistant说明文档.md](说明文档/BookMall-ai-assistant说明文档.md)
+- [说明文档/BookMall-数据库设计说明.md](说明文档/BookMall-数据库设计说明.md)
+- [说明文档/BookMall-增强项实施说明.md](说明文档/BookMall-增强项实施说明.md)
+- [说明文档/BookMall-Nginx部署说明.md](说明文档/BookMall-Nginx部署说明.md)
+- [说明文档/README.md](说明文档/README.md)

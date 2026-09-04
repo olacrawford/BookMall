@@ -1,0 +1,17 @@
+server:
+  port: 8071
+
+spring:
+  application:
+    name: ai-assistant
+  config:
+    import:
+      - optional:nacos:ai-assistant.yaml
+  cloud:
+    nacos:
+      config:
+        server-addr: localhost:8848
+      discovery:
+        server-addr: localhost:8848
+        namespace: public
+        group: DEFAULT_GROUP

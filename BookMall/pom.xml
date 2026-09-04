@@ -21,6 +21,7 @@
         <module>bookmall-gateway</module>
         <module>bookmall-order</module>
         <module>bookmall-payment</module>
+        <module>bookmall-ai</module>
     </modules>
 
     <properties>
@@ -32,6 +33,8 @@
         <mybatis-plus-jsqlparser.version>3.5.13</mybatis-plus-jsqlparser.version>
         <jjwt.version>0.11.5</jjwt.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <langchain4j.version>1.19.0</langchain4j.version>
+
     </properties>
 
     <dependencyManagement>
@@ -96,7 +99,18 @@
                 <artifactId>jjwt-jackson</artifactId>
                 <version>${jjwt.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-bom</artifactId>
+                <version>${langchain4j.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
         </dependencies>
+
+
     </dependencyManagement>
 
     <build>

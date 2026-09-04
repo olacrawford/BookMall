@@ -96,3 +96,12 @@ export const paymentApi = {
     return http.get(`/api/payment/order/${orderId}`).then(unwrapResult)
   }
 }
+
+export const aiApi = {
+  chat(payload) {
+    return http.post('/api/ai/chat', payload).then(unwrapResult)
+  },
+  hello() {
+    return http.get('/api/ai/hello').then(unwrapResult)
+  }
+}
