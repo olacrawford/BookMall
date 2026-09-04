@@ -42,21 +42,6 @@ public class QueryBookTool {
                 .orElse("没有找到相关图书");
     }
 
-    /** @Tool 返回图书详情，供模型回答“某本书怎么样”这类问题。 */
-    @Tool("根据图书ID查询图书详情（含简介、状态、价格、封面）")
-    public String getBookById(@P("bookId") Long bookId) {
-        if (bookId == null) {
-            return "请提供图书ID";
-        }
-        BookSnapshot book = ResultUtils.data(bookFeignClient.getBookById(bookId));
-        if (book == null) {
-            return "该图书不存在";
-        }
-        String status = (book.getStatus() != null && book.getStatus() == 1) ? "在售" : "下架";
-        return String.format("《%s》 %s ¥%s 状态:%s 简介:%s",
-                book.getTitle(), book.getAuthor(), book.getPrice(), status, book.getDescription());
-    }
-
     /** @Tool 返回全部分类，模型可据此引导用户按分类找书。 */
     @Tool("查询所有图书分类（返回分类ID与名称）")
     public String listCategories() {
